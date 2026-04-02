@@ -8,14 +8,31 @@
 
 #include <Bitmap.h>
 #include <stdio.h>
+#include <InterfaceDefs.h>
 
 StatusView::StatusView()
     : BStringView("status", "No image")
 {
     SetAlignment(B_ALIGN_LEFT);
+	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 }
 
-void StatusView::Update(const entry_ref* ref, const ImageView* imageView)
+
+void StatusView::Draw(BRect updateRect)
+{
+	BStringView::Draw(updateRect);
+
+    // Draw top separator line
+    SetHighColor(ui_color(B_WINDOW_BORDER_COLOR));
+
+    StrokeLine(BPoint(Bounds().left, Bounds().top),
+               BPoint(Bounds().right, Bounds().top));
+}
+
+void StatusView::Update(const entry_ref* ref,
+                        const ImageView* imageView,
+                        int32 index,
+                        int32 total)
 {
     if (!imageView) {
         SetText("No image");
@@ -37,9 +54,15 @@ void StatusView::Update(const entry_ref* ref, const ImageView* imageView)
         ? "Fit"
         : "1:1";
 
+    char indexBuffer[32] = "";
+    if (total > 0 && index >= 0) {
+        snprintf(indexBuffer, sizeof(indexBuffer), "%d/%d  |  ",
+            index + 1, total);
+    }
+
     char buffer[256];
-    snprintf(buffer, sizeof(buffer), "%s  |  %d x %d  |  %s",
-        name, width, height, mode);
+    snprintf(buffer, sizeof(buffer), "%s%s  |  %d x %d  |  %s",
+        indexBuffer, name, width, height, mode);
 
     SetText(buffer);
 }

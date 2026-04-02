@@ -37,6 +37,8 @@ static const uint32 kMsgActualSize = 'acts';
 static const uint32 kMsgNextImage = 'next';
 static const uint32 kMsgPrevImage = 'prev';
 static const uint32 kMsgDeleteImage = 'delI';
+static const uint32 kMsgRotate90CW = 'rocw';
+static const uint32 kMsgRotate90CCW = 'rccw';
 
 static const char* kSettingsFile = "quickBitmap_settings";
 
@@ -53,8 +55,13 @@ MainWindow::MainWindow()
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
 		.Add(menuBar)
 		.Add(fImageView)
-		.Add(fStatusView)
+		.AddGroup(B_HORIZONTAL)
+			.SetInsets(5, 3, 5, 3)
+			.Add(fStatusView)
 		.End();
+
+	fStatusView->SetExplicitMaxSize(BSize(B_SIZE_UNLIMITED, B_SIZE_UNSET));
+	fStatusView->SetExplicitMinSize(BSize(0, 20));
 
 	BMessenger messenger(this);
 	fOpenPanel = new BFilePanel(B_OPEN_PANEL, &messenger, NULL, B_FILE_NODE, false);
@@ -69,6 +76,8 @@ MainWindow::MainWindow()
 		ResizeTo(frame.Width(), frame.Height());
 	}
 	MoveOnScreen();
+	fStatusView->SetAlignment(B_ALIGN_LEFT);
+	fStatusView->SetExplicitMinSize(BSize(B_SIZE_UNSET, 20));
 	fImageView->MakeFocus(true);
 }
 
@@ -155,6 +164,17 @@ MainWindow::MessageReceived(BMessage* message)
 			DeleteCurrentImage();
 			break;
 		}
+
+		case kMsgRotate90CW:
+		{
+			fImageView->Rotate90CW();
+		} break;
+
+		case kMsgRotate90CCW:
+		{
+			fImageView->Rotate90CCW();
+		} break;
+
 		case 'stat':
 		{
 			_UpdateStatus();
@@ -196,6 +216,17 @@ MainWindow::_BuildMenu()
 	menu->AddItem(item);
 
 	item = new BMenuItem(B_TRANSLATE("Quit"), new BMessage(B_QUIT_REQUESTED), 'Q');
+	menu->AddItem(item);
+
+	menuBar->AddItem(menu);
+
+	// menu 'Edit'
+	menu = new BMenu(B_TRANSLATE("Edit"));
+
+	item = new BMenuItem(B_TRANSLATE("Rotate 90"), new BMessage(kMsgRotate90CW), 'R');
+	menu->AddItem(item);
+
+	item = new BMenuItem(B_TRANSLATE("Rotate -90"), new BMessage(kMsgRotate90CCW), 'L');
 	menu->AddItem(item);
 
 	menuBar->AddItem(menu);
@@ -418,5 +449,8 @@ void MainWindow::DeleteCurrentImage()
 
 void MainWindow::_UpdateStatus()
 {
-	fStatusView->Update(&fCurrentRef, fImageView);
+    fStatusView->Update(&fCurrentRef,
+                        fImageView,
+                        fCurrentIndex,
+                        fFileList.size());
 }

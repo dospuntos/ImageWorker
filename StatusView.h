@@ -16,7 +16,12 @@ class StatusView : public BStringView {
 public:
     StatusView();
 
-    void Update(const entry_ref* ref, const ImageView* imageView);
+	virtual void Draw(BRect updateRect);
+
+    void Update(const entry_ref* ref,
+            const ImageView* imageView,
+            int32 index,
+            int32 total);
 };
 
 #endif // STATUS_VIEW_H
