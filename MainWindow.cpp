@@ -26,6 +26,8 @@
 static const uint32 kMsgNewFile = 'fnew';
 static const uint32 kMsgOpenFile = 'fopn';
 static const uint32 kMsgSaveFile = 'fsav';
+static const uint32 kMsgFitToWindow = 'fitw';
+static const uint32 kMsgActualSize = 'acts';
 
 static const char* kSettingsFile = "quickBitmap_settings";
 
@@ -53,7 +55,7 @@ MainWindow::MainWindow()
 	BRect frame;
 	if (settings.FindRect("main_window_rect", &frame) == B_OK) {
 		MoveTo(frame.LeftTop());
-		ResizeTo(frame.Width(), Bounds().Height());
+		ResizeTo(frame.Width(), frame.Height());
 	}
 	MoveOnScreen();
 }
@@ -113,6 +115,16 @@ MainWindow::MessageReceived(BMessage* message)
 			fSavePanel->Show();
 		} break;
 
+		case kMsgFitToWindow:
+		{
+			fImageView->SetScaleMode(SCALE_FIT);
+		} break;
+
+		case kMsgActualSize:
+		{
+			fImageView->SetScaleMode(SCALE_ORIGINAL);
+		} break;
+
 		default:
 		{
 			BWindow::MessageReceived(message);
@@ -149,6 +161,17 @@ MainWindow::_BuildMenu()
 	menu->AddItem(item);
 
 	item = new BMenuItem(B_TRANSLATE("Quit"), new BMessage(B_QUIT_REQUESTED), 'Q');
+	menu->AddItem(item);
+
+	menuBar->AddItem(menu);
+
+	// menu 'View'
+	menu = new BMenu(B_TRANSLATE("View"));
+
+	item = new BMenuItem(B_TRANSLATE("Fit to window"), new BMessage(kMsgFitToWindow), 'F');
+	menu->AddItem(item);
+
+	item = new BMenuItem(B_TRANSLATE("Actual size"), new BMessage(kMsgActualSize), '1');
 	menu->AddItem(item);
 
 	menuBar->AddItem(menu);

@@ -12,7 +12,6 @@
 #include <Window.h>
 #include "ImageView.h"
 
-
 class MainWindow : public BWindow
 {
 public:
