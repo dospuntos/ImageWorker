@@ -18,6 +18,8 @@ public:
     ImageView();
     virtual ~ImageView();
 
+	void MessageReceived(BMessage* message);
+
     void SetBitmap(BBitmap* bitmap);
 	void SetScaleMode(ScaleMode mode);
 	ScaleMode getScaleMode() const;
@@ -26,6 +28,8 @@ public:
     virtual void Draw(BRect updateRect);
 	virtual void FrameResized(float width, float height);
 	virtual void KeyDown(const char* bytes, int32 numBytes);
+	virtual void MouseWheelChanged(BPoint where, float x, float y);
+	BPoint fOffset; // Image offset from center
 
 	void Rotate90CW();
 	void Rotate90CCW();

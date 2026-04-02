@@ -5,21 +5,44 @@
 
 #include "ImageView.h"
 #include <Window.h>
+#include <cstdio>
+
 
 ImageView::ImageView()
     : BView("image_view", B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE | B_NAVIGABLE),
       fBitmap(nullptr),
 	  fScaleMode(SCALE_FIT),
-	  fZoom(1.0f)
+	  fZoom(1.0f),
+	  fOffset(BPoint(0,0))
 {
     SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 	float fZoom = 1.0f;
+	SetMouseEventMask(B_POINTER_EVENTS, B_LOCK_WINDOW_FOCUS);
 }
 
 ImageView::~ImageView()
 {
     delete fBitmap;
 }
+
+void ImageView::MessageReceived(BMessage* message)
+{
+    if (message->what == B_MOUSE_WHEEL_CHANGED) {
+        float x, y;
+        if (message->FindFloat("be:wheel_delta_x", &x) == B_OK &&
+            message->FindFloat("be:wheel_delta_y", &y) == B_OK) {
+
+            BPoint where;
+            GetMouse(&where, nullptr);
+
+            MouseWheelChanged(where, x, y);
+            return;
+        }
+    }
+
+    BView::MessageReceived(message);
+}
+
 
 void
 ImageView::SetBitmap(BBitmap* bitmap)
@@ -33,6 +56,12 @@ void
 ImageView::SetScaleMode(ScaleMode mode)
 {
 	fScaleMode = mode;
+	if (mode == SCALE_FIT)
+        fOffset = BPoint(0, 0);
+
+	if (Window())
+		Window()->PostMessage('stat');
+
 	Invalidate();
 }
 
@@ -45,53 +74,45 @@ ImageView::getScaleMode() const
 void
 ImageView::Draw(BRect)
 {
-	// Clear entire background first
+    // Clear background
     SetHighColor(ViewColor());
     FillRect(Bounds());
 
     if (!fBitmap)
-		return;
+        return;
 
-	BRect viewBounds = Bounds();
-	BRect bitmapBounds = fBitmap->Bounds();
+    BRect viewBounds = Bounds();
+    BRect bitmapBounds = fBitmap->Bounds();
 
-	float bitmapWidth = bitmapBounds.Width() + 1;
-	float bitmapHeight = bitmapBounds.Height() + 1;
+    float bitmapWidth = bitmapBounds.Width() + 1;
+    float bitmapHeight = bitmapBounds.Height() + 1;
 
-	float viewWidth = viewBounds.Width() + 1;
-	float viewHeight = viewBounds.Height() + 1;
+    float viewWidth = viewBounds.Width() + 1;
+    float viewHeight = viewBounds.Height() + 1;
 
-	BRect destRect;
-
-	if (fScaleMode == SCALE_ORIGINAL) {
-		float drawWidth = bitmapWidth * fZoom;
-		float drawHeight = bitmapHeight * fZoom;
-
-		float x = (viewWidth - drawWidth) / 2;
-		float y = (viewHeight - drawHeight) / 2;
-
-		destRect = BRect(x, y, x + drawWidth - 1, y + drawHeight - 1);
-	} else {
-		// SCALE_FIT: preserve aspect ratio
+    // --- unified zoom ---
+    float zoom;
+    if (fScaleMode == SCALE_FIT) {
         float scaleX = viewWidth / bitmapWidth;
         float scaleY = viewHeight / bitmapHeight;
-        float scale = std::min(scaleX, scaleY);
+        zoom = std::min(scaleX, scaleY);
+    } else {
+        zoom = fZoom;
+    }
 
-        float drawWidth = bitmapWidth * scale;
-        float drawHeight = bitmapHeight * scale;
+    float drawWidth = bitmapWidth * zoom;
+    float drawHeight = bitmapHeight * zoom;
 
-        float x = (viewWidth - drawWidth) / 2;
-        float y = (viewHeight - drawHeight) / 2;
+    // --- ALWAYS apply offset ---
+    float x = (viewWidth - drawWidth) / 2 + fOffset.x;
+    float y = (viewHeight - drawHeight) / 2 + fOffset.y;
 
-        destRect = BRect(x, y, x + drawWidth - 1, y + drawHeight - 1);
-	}
+    BRect destRect(x, y, x + drawWidth - 1, y + drawHeight - 1);
 
-	SetDrawingMode(B_OP_ALPHA);
-	SetBlendingMode(B_PIXEL_ALPHA, B_ALPHA_OVERLAY);
+    SetDrawingMode(B_OP_ALPHA);
+    SetBlendingMode(B_PIXEL_ALPHA, B_ALPHA_OVERLAY);
 
-	DrawBitmap(fBitmap, bitmapBounds, destRect);
-	if (Window())
-        Window()->PostMessage('stat'); // update status
+    DrawBitmap(fBitmap, bitmapBounds, destRect);
 }
 
 
@@ -285,6 +306,66 @@ float ImageView::EffectiveZoom() const
     }
 
     return fZoom;
+}
+
+
+void ImageView::MouseWheelChanged(BPoint where, float, float y)
+{
+    if (!fBitmap)
+        return;
+
+    float oldZoom = EffectiveZoom();
+
+    // Zoom factor
+    float factor = (y < 0) ? 1.25f : 0.8f;
+
+    // Switch from FIT → zoom mode
+    if (fScaleMode == SCALE_FIT) {
+        fZoom = oldZoom;
+        fScaleMode = SCALE_ORIGINAL;
+    }
+
+    float newZoom = fZoom * factor;
+    if (newZoom < 0.05f) newZoom = 0.05f;
+    if (newZoom > 20.0f) newZoom = 20.0f;
+
+    // --- STEP 1: find top-left of image BEFORE zoom ---
+    BRect bounds = Bounds();
+
+    float viewW = bounds.Width() + 1;
+    float viewH = bounds.Height() + 1;
+
+    float bmpW = fBitmap->Bounds().Width() + 1;
+    float bmpH = fBitmap->Bounds().Height() + 1;
+
+    float drawW = bmpW * oldZoom;
+    float drawH = bmpH * oldZoom;
+
+    float left = (viewW - drawW) / 2 + fOffset.x;
+    float top  = (viewH - drawH) / 2 + fOffset.y;
+
+    // --- STEP 2: get cursor position in image space ---
+    float imgX = (where.x - left) / oldZoom;
+    float imgY = (where.y - top) / oldZoom;
+
+    // --- STEP 3: apply zoom ---
+    fZoom = newZoom;
+
+    float newDrawW = bmpW * fZoom;
+    float newDrawH = bmpH * fZoom;
+
+    // --- STEP 4: compute new top-left so cursor stays fixed ---
+    float newLeft = where.x - imgX * fZoom;
+    float newTop  = where.y - imgY * fZoom;
+
+    // --- STEP 5: convert back to offset ---
+    fOffset.x = newLeft - (viewW - newDrawW) / 2;
+    fOffset.y = newTop  - (viewH - newDrawH) / 2;
+
+    Invalidate();
+
+    if (Window())
+        Window()->PostMessage('stat');
 }
 
 
