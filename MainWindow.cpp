@@ -1,5 +1,5 @@
 /*
- * Copyright 2024, My Name
+ * Copyright 2026, Johan Wagenheim
  * All rights reserved. Distributed under the terms of the MIT license.
  */
 
@@ -58,6 +58,7 @@ MainWindow::MainWindow()
 		ResizeTo(frame.Width(), frame.Height());
 	}
 	MoveOnScreen();
+	fImageView->MakeFocus(true);
 }
 
 
@@ -239,4 +240,17 @@ MainWindow::_LoadImage(const entry_ref& ref)
 	}
 
 	fImageView->SetBitmap(bitmap);
+}
+
+
+void
+MainWindow::_ToggleScaleMode()
+{
+	if (!fImageView)
+		return;
+
+	if (fImageView->getScaleMode() == SCALE_FIT)
+		fImageView->SetScaleMode(SCALE_ORIGINAL);
+	else
+		fImageView->SetScaleMode(SCALE_FIT);
 }

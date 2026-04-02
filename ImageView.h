@@ -1,5 +1,5 @@
 /*
- * Copyright 2024, My Name
+ * Copyright 2026, Johan Wagenheim
  * All rights reserved. Distributed under the terms of the MIT license.
  */
 #ifndef IMAGE_VIEW_H
@@ -20,9 +20,11 @@ public:
 
     void SetBitmap(BBitmap* bitmap);
 	void SetScaleMode(ScaleMode mode);
+	ScaleMode getScaleMode() const;
 
     virtual void Draw(BRect updateRect);
 	virtual void FrameResized(float width, float height);
+	virtual void KeyDown(const char* bytes, int32 numBytes);
 
 private:
     BBitmap* fBitmap;

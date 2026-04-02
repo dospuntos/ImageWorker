@@ -1,12 +1,13 @@
 /*
- * Copyright 2024, My Name
+ * Copyright 2026, Johan Wagenheim
  * All rights reserved. Distributed under the terms of the MIT license.
  */
 
 #include "ImageView.h"
+#include <Window.h>
 
 ImageView::ImageView()
-    : BView("image_view", B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE),
+    : BView("image_view", B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE | B_NAVIGABLE),
       fBitmap(nullptr),
 	  fScaleMode(SCALE_FIT)
 {
@@ -31,6 +32,12 @@ ImageView::SetScaleMode(ScaleMode mode)
 {
 	fScaleMode = mode;
 	Invalidate();
+}
+
+ScaleMode
+ImageView::getScaleMode() const
+{
+	return fScaleMode;
 }
 
 void
@@ -83,4 +90,28 @@ ImageView::FrameResized(float width, float height)
 {
 	BView::FrameResized(width, height);
 	Invalidate();
+}
+
+
+void ImageView::KeyDown(const char* bytes, int32 numBytes)
+{
+    if (numBytes == 1) {
+        switch (bytes[0]) {
+            case B_ESCAPE:
+                if (Window())
+                    Window()->PostMessage(B_QUIT_REQUESTED);
+                return;
+
+            case 'f':
+            case 'F':
+                // toggle scale mode
+                if (fScaleMode == SCALE_FIT)
+                    SetScaleMode(SCALE_ORIGINAL);
+                else
+                    SetScaleMode(SCALE_FIT);
+                return;
+        }
+    }
+
+    BView::KeyDown(bytes, numBytes);
 }

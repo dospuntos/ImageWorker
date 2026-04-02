@@ -1,5 +1,5 @@
 /*
- * Copyright 2024, My Name
+ * Copyright 2026, Johan Wagenheim
  * All rights reserved. Distributed under the terms of the MIT license.
  */
 #ifndef MAINWINDOW_H
@@ -19,6 +19,7 @@ public:
 	virtual					~MainWindow();
 
 	virtual void			MessageReceived(BMessage* msg);
+	void					_ToggleScaleMode();
 
 private:
 			BMenuBar*		_BuildMenu();
