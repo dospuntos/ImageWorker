@@ -1,0 +1,2 @@
+* Browse with subfolder (optional)
+* Errors when reducing window size

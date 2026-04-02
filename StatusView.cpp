@@ -9,6 +9,7 @@
 #include <Bitmap.h>
 #include <stdio.h>
 #include <InterfaceDefs.h>
+#include <File.h>
 
 StatusView::StatusView()
     : BStringView("status", "No image")
@@ -50,20 +51,72 @@ void StatusView::Update(const entry_ref* ref,
 
     const char* name = (ref && ref->name) ? ref->name : "(unnamed)";
 
-    const char* mode = (imageView->getScaleMode() == SCALE_FIT)
-        ? "Fit"
-        : "1:1";
+	const char* mode = (imageView->getScaleMode() == SCALE_FIT)
+    ? "Fit"
+    : "";
 
-    char indexBuffer[32] = "";
+    // index
+    char indexBuf[32] = "";
     if (total > 0 && index >= 0) {
-        snprintf(indexBuffer, sizeof(indexBuffer), "%d/%d  |  ",
+        snprintf(indexBuf, sizeof(indexBuf), "%d/%d  | ",
             index + 1, total);
     }
 
-    char buffer[256];
-    snprintf(buffer, sizeof(buffer), "%s%s  |  %d x %d  |  %s",
-        indexBuffer, name, width, height, mode);
+    // zoom
+    float zoom = imageView->EffectiveZoom();
+    char zoomBuf[32];
+    snprintf(zoomBuf, sizeof(zoomBuf), "%.0f%%", zoom * 100.0f);
+
+    // sizes
+    char diskBuf[32], memBuf[32];
+    _FormatSize(diskBuf, _GetFileSize(ref));
+    _FormatSize(memBuf, _GetBitmapSize(bmp));
+
+    char buffer[512];
+    snprintf(buffer, sizeof(buffer),
+    "%s%s  |  %d x %d  |  %.0f%% %s  |  %s/%s",
+		indexBuf,
+		name,
+		width, height,
+		zoom * 100.0f,
+		mode,
+		diskBuf, memBuf);
 
     SetText(buffer);
 }
 
+
+static off_t _GetFileSize(const entry_ref* ref)
+{
+    if (!ref)
+        return 0;
+
+    BFile file(ref, B_READ_ONLY);
+    off_t size = 0;
+    file.GetSize(&size);
+    return size;
+}
+
+
+static size_t _GetBitmapSize(BBitmap* bmp)
+{
+    if (!bmp)
+        return 0;
+
+    return bmp->BitsLength();
+}
+
+
+static void _FormatSize(char* out, size_t size)
+{
+    const char* units[] = {"B", "KB", "MB", "GB"};
+    int i = 0;
+    double s = (double)size;
+
+    while (s > 1024 && i < 3) {
+        s /= 1024;
+        i++;
+    }
+
+    snprintf(out, 32, "%.1f%s", s, units[i]);
+}

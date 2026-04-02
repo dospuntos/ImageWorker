@@ -30,6 +30,14 @@ public:
 	void Rotate90CW();
 	void Rotate90CCW();
 
+	float Zoom() const;
+	void SetZoom(float zoom);
+	void ZoomIn();
+	void ZoomOut();
+
+	float fZoom = 1.0f;
+	float EffectiveZoom() const;
+
 private:
     BBitmap* fBitmap;
 	ScaleMode fScaleMode;

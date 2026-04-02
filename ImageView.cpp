@@ -9,9 +9,11 @@
 ImageView::ImageView()
     : BView("image_view", B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE | B_NAVIGABLE),
       fBitmap(nullptr),
-	  fScaleMode(SCALE_FIT)
+	  fScaleMode(SCALE_FIT),
+	  fZoom(1.0f)
 {
     SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
+	float fZoom = 1.0f;
 }
 
 ImageView::~ImageView()
@@ -43,6 +45,10 @@ ImageView::getScaleMode() const
 void
 ImageView::Draw(BRect)
 {
+	// Clear entire background first
+    SetHighColor(ViewColor());
+    FillRect(Bounds());
+
     if (!fBitmap)
 		return;
 
@@ -58,11 +64,13 @@ ImageView::Draw(BRect)
 	BRect destRect;
 
 	if (fScaleMode == SCALE_ORIGINAL) {
-		// Center image, no scaling
-		float x = (viewWidth - bitmapWidth) / 2;
-		float y = (viewHeight - bitmapHeight) / 2;
+		float drawWidth = bitmapWidth * fZoom;
+		float drawHeight = bitmapHeight * fZoom;
 
-		destRect = BRect(x, y, x + bitmapWidth - 1, y + bitmapHeight - 1);
+		float x = (viewWidth - drawWidth) / 2;
+		float y = (viewHeight - drawHeight) / 2;
+
+		destRect = BRect(x, y, x + drawWidth - 1, y + drawHeight - 1);
 	} else {
 		// SCALE_FIT: preserve aspect ratio
         float scaleX = viewWidth / bitmapWidth;
@@ -82,6 +90,8 @@ ImageView::Draw(BRect)
 	SetBlendingMode(B_PIXEL_ALPHA, B_ALPHA_OVERLAY);
 
 	DrawBitmap(fBitmap, bitmapBounds, destRect);
+	if (Window())
+        Window()->PostMessage('stat'); // update status
 }
 
 
@@ -89,7 +99,10 @@ void
 ImageView::FrameResized(float width, float height)
 {
 	BView::FrameResized(width, height);
-	Invalidate();
+	Invalidate(Bounds());
+
+	if (Window())
+        Window()->PostMessage('stat'); // update status
 }
 
 
@@ -129,6 +142,14 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
 			case 'l':
 			case 'L':
 				Rotate90CCW();
+				return;
+			case '+':
+			case '=':
+				ZoomIn();
+				return;
+
+			case '-':
+				ZoomOut();
 				return;
         }
     }
@@ -210,6 +231,60 @@ void ImageView::Rotate90CCW()
     SetBitmap(rotated);
 	if (Window())
 		Window()->PostMessage('stat');
+}
+
+float ImageView::Zoom() const
+{
+    return fZoom;
+}
+
+void ImageView::SetZoom(float zoom)
+{
+    if (zoom < 0.05f) zoom = 0.05f;
+    if (zoom > 10.0f) zoom = 10.0f;
+
+    fZoom = zoom;
+    fScaleMode = SCALE_ORIGINAL; // zoom overrides fit
+    Invalidate();
+	if (Window())
+		Window()->PostMessage('stat');
+}
+
+void ImageView::ZoomIn()
+{
+    SetZoom(fZoom * 1.25f);
+	if (Window())
+		Window()->PostMessage('stat');
+}
+
+void ImageView::ZoomOut()
+{
+    SetZoom(fZoom / 1.25f);
+	if (Window())
+		Window()->PostMessage('stat');
+}
+
+float ImageView::EffectiveZoom() const
+{
+    if (!fBitmap)
+        return 1.0f;
+
+    BRect viewBounds = Bounds();
+    BRect bitmapBounds = fBitmap->Bounds();
+
+    float bitmapWidth = bitmapBounds.Width() + 1;
+    float bitmapHeight = bitmapBounds.Height() + 1;
+
+    float viewWidth = viewBounds.Width() + 1;
+    float viewHeight = viewBounds.Height() + 1;
+
+    if (fScaleMode == SCALE_FIT) {
+        float scaleX = viewWidth / bitmapWidth;
+        float scaleY = viewHeight / bitmapHeight;
+        return std::min(scaleX, scaleY);
+    }
+
+    return fZoom;
 }
 
 

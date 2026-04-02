@@ -24,4 +24,8 @@ public:
             int32 total);
 };
 
+static off_t _GetFileSize(const entry_ref* ref);
+static size_t _GetBitmapSize(BBitmap* bmp);
+static void _FormatSize(char* out, size_t size);
+
 #endif // STATUS_VIEW_H
