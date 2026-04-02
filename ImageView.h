@@ -31,6 +31,14 @@ public:
 	virtual void MouseWheelChanged(BPoint where, float x, float y);
 	BPoint fOffset; // Image offset from center
 
+	virtual void MouseDown(BPoint where);
+	virtual void MouseUp(BPoint where);
+	virtual void MouseMoved(BPoint where, uint32 code, const BMessage* dragMessage);
+
+	bool fDragging;
+	BPoint fLastMouse;
+	void _ClampOffset();
+
 	void Rotate90CW();
 	void Rotate90CCW();
 

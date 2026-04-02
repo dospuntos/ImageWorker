@@ -5,15 +5,15 @@
 
 #include "ImageView.h"
 #include <Window.h>
-#include <cstdio>
-
+#include <Cursor.h>
 
 ImageView::ImageView()
     : BView("image_view", B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE | B_NAVIGABLE),
       fBitmap(nullptr),
 	  fScaleMode(SCALE_FIT),
 	  fZoom(1.0f),
-	  fOffset(BPoint(0,0))
+	  fOffset(BPoint(0,0)),
+	  fDragging(false)
 {
     SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 	float fZoom = 1.0f;
@@ -49,6 +49,7 @@ ImageView::SetBitmap(BBitmap* bitmap)
 {
     delete fBitmap;
     fBitmap = bitmap;
+	fOffset = BPoint(0,0);
     Invalidate();
 }
 
@@ -120,6 +121,8 @@ void
 ImageView::FrameResized(float width, float height)
 {
 	BView::FrameResized(width, height);
+
+	_ClampOffset();
 	Invalidate(Bounds());
 
 	if (Window())
@@ -273,14 +276,14 @@ void ImageView::SetZoom(float zoom)
 
 void ImageView::ZoomIn()
 {
-    SetZoom(fZoom * 1.25f);
+    SetZoom(fZoom * 1.05f);
 	if (Window())
 		Window()->PostMessage('stat');
 }
 
 void ImageView::ZoomOut()
 {
-    SetZoom(fZoom / 1.25f);
+    SetZoom(fZoom / 1.05f);
 	if (Window())
 		Window()->PostMessage('stat');
 }
@@ -362,12 +365,96 @@ void ImageView::MouseWheelChanged(BPoint where, float, float y)
     fOffset.x = newLeft - (viewW - newDrawW) / 2;
     fOffset.y = newTop  - (viewH - newDrawH) / 2;
 
+	_ClampOffset();
     Invalidate();
-
-    if (Window())
-        Window()->PostMessage('stat');
 }
 
+
+void ImageView::MouseDown(BPoint where)
+{
+	fDragging = true;
+	fLastMouse = where;
+
+	SetMouseEventMask(B_POINTER_EVENTS, B_LOCK_WINDOW_FOCUS);
+}
+
+void ImageView::MouseUp(BPoint)
+{
+	fDragging = false;
+}
+
+void ImageView::MouseMoved(BPoint where, uint32, const BMessage*)
+{
+	if (!fDragging)
+		return;
+
+	if (fScaleMode == SCALE_FIT)
+		return;
+
+	float dx = where.x - fLastMouse.x;
+	float dy = where.y - fLastMouse.y;
+
+	fOffset.x += dx;
+	fOffset.y += dy;
+
+	_ClampOffset();
+
+	fLastMouse = where;
+
+	Invalidate();
+}
+
+
+static float _Clamp(float v, float min, float max)
+{
+    if (v < min) return min;
+    if (v > max) return max;
+    return v;
+}
+
+void ImageView::_ClampOffset()
+{
+    if (!fBitmap)
+        return;
+
+    BRect bounds = Bounds();
+
+    float viewW = bounds.Width() + 1;
+    float viewH = bounds.Height() + 1;
+
+    float bmpW = fBitmap->Bounds().Width() + 1;
+    float bmpH = fBitmap->Bounds().Height() + 1;
+
+    // Use same zoom logic as Draw()
+    float zoom;
+    if (fScaleMode == SCALE_FIT) {
+        float scaleX = viewW / bmpW;
+        float scaleY = viewH / bmpH;
+        zoom = std::min(scaleX, scaleY);
+    } else {
+        zoom = fZoom;
+    }
+
+    float drawW = bmpW * zoom;
+    float drawH = bmpH * zoom;
+
+    // --- Horizontal ---
+    if (drawW <= viewW) {
+        // Image smaller than view → center
+        fOffset.x = 0;
+    } else {
+        float maxOffsetX = (drawW - viewW) / 2;
+        fOffset.x = _Clamp(fOffset.x, -maxOffsetX, maxOffsetX);
+    }
+
+    // --- Vertical ---
+    if (drawH <= viewH) {
+        fOffset.y = 0;
+    } else {
+        float maxOffsetY = (drawH - viewH) / 2;
+        fOffset.y = _Clamp(fOffset.y, -maxOffsetY, maxOffsetY);
+    }
+}
 
 BBitmap* ImageView::Bitmap() const
 {

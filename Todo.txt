@@ -1,2 +1,3 @@
 * Browse with subfolder (optional)
 * Errors when reducing window size
+* Shortcut to Zoom 100% and Zoom fit
