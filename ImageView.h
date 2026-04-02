@@ -26,6 +26,9 @@ public:
 	virtual void FrameResized(float width, float height);
 	virtual void KeyDown(const char* bytes, int32 numBytes);
 
+	void Rotate90CW();
+	void Rotate90CCW();
+
 private:
     BBitmap* fBitmap;
 	ScaleMode fScaleMode;

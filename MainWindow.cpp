@@ -20,6 +20,7 @@
 #include <Menu.h>
 #include <MenuBar.h>
 #include <Path.h>
+#include <Roster.h>
 #include <TranslationUtils.h>
 #include <View.h>
 
@@ -35,6 +36,7 @@ static const uint32 kMsgFitToWindow = 'fitw';
 static const uint32 kMsgActualSize = 'acts';
 static const uint32 kMsgNextImage = 'next';
 static const uint32 kMsgPrevImage = 'prev';
+static const uint32 kMsgDeleteImage = 'delI';
 
 static const char* kSettingsFile = "quickBitmap_settings";
 
@@ -143,6 +145,12 @@ MainWindow::MessageReceived(BMessage* message)
 		{
 			PrevImage();
 		} break;
+
+		case kMsgDeleteImage:
+		{
+			DeleteCurrentImage();
+			break;
+		}
 
 		default:
 		{
@@ -352,4 +360,46 @@ void MainWindow::PrevImage()
         prev = fFileList.size() - 1; // wrap around
 
     _LoadImageAtIndex(prev);
+}
+
+
+void MainWindow::DeleteCurrentImage()
+{
+	BAlert* alert = new BAlert("Confirm",
+		"Delete this image permanently?",
+		"Cancel", "Delete", nullptr,
+		B_WIDTH_AS_USUAL, B_WARNING_ALERT);
+
+	if (alert->Go() != 1)
+		return;
+
+    if (fFileList.empty() || fCurrentIndex < 0)
+        return;
+
+    entry_ref ref = fFileList[fCurrentIndex];
+    BEntry entry(&ref);
+
+    // Try move to Trash (safer)
+    status_t result = entry.Remove();
+
+    if (result != B_OK) {
+        printf("Failed to delete image\n");
+        return;
+    }
+
+    // Remove from list
+    fFileList.erase(fFileList.begin() + fCurrentIndex);
+
+    if (fFileList.empty()) {
+        // No images left
+        fCurrentIndex = -1;
+        fImageView->SetBitmap(nullptr);
+        return;
+    }
+
+    // Stay at same index if possible (next image slides into place)
+    if (fCurrentIndex >= (int32)fFileList.size())
+        fCurrentIndex = fFileList.size() - 1;
+
+    _LoadImageAtIndex(fCurrentIndex);
 }

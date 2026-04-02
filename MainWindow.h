@@ -42,6 +42,7 @@ private:
 			void			_LoadImageAtIndex(int32 index);
 			void			NextImage();
 			void			PrevImage();
+			void			DeleteCurrentImage();
 };
 
 #endif
