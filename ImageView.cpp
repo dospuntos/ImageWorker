@@ -6,7 +6,7 @@
 #include "ImageView.h"
 
 ImageView::ImageView()
-    : BView("image_view", B_WILL_DRAW),
+    : BView("image_view", B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE),
       fBitmap(nullptr),
 	  fScaleMode(SCALE_FIT)
 {
@@ -71,5 +71,16 @@ ImageView::Draw(BRect)
         destRect = BRect(x, y, x + drawWidth - 1, y + drawHeight - 1);
 	}
 
+	SetDrawingMode(B_OP_ALPHA);
+	SetBlendingMode(B_PIXEL_ALPHA, B_ALPHA_OVERLAY);
+
 	DrawBitmap(fBitmap, bitmapBounds, destRect);
+}
+
+
+void
+ImageView::FrameResized(float width, float height)
+{
+	BView::FrameResized(width, height);
+	Invalidate();
 }

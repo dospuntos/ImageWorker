@@ -22,6 +22,7 @@ public:
 	void SetScaleMode(ScaleMode mode);
 
     virtual void Draw(BRect updateRect);
+	virtual void FrameResized(float width, float height);
 
 private:
     BBitmap* fBitmap;
