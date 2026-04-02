@@ -21,6 +21,7 @@ public:
     void SetBitmap(BBitmap* bitmap);
 	void SetScaleMode(ScaleMode mode);
 	ScaleMode getScaleMode() const;
+	BBitmap* Bitmap() const;
 
     virtual void Draw(BRect updateRect);
 	virtual void FrameResized(float width, float height);

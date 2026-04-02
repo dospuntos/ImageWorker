@@ -12,6 +12,8 @@
 #include <MenuItem.h>
 #include <Window.h>
 #include "ImageView.h"
+#include "StatusView.h"
+#include <StringView.h>
 
 class MainWindow : public BWindow
 {
@@ -25,10 +27,12 @@ public:
 private:
 			BMenuBar*		_BuildMenu();
 			ImageView*		fImageView;
+			StatusView*		fStatusView;
 
 			status_t		_LoadSettings(BMessage& settings);
 			status_t		_SaveSettings();
 			void			_LoadImage(const entry_ref& ref);
+			void			_UpdateStatus();
 
 			BMenuItem*		fSaveMenuItem;
 			BFilePanel*		fOpenPanel;
@@ -36,6 +40,8 @@ private:
 
 			std::vector<entry_ref> fFileList;
 			int32			fCurrentIndex = -1;
+			entry_ref		fCurrentRef;
+
 
 			// navigation
 			void			_LoadDirectory(const entry_ref& ref);

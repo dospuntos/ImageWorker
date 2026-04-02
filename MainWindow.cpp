@@ -48,10 +48,12 @@ MainWindow::MainWindow()
 {
 	BMenuBar* menuBar = _BuildMenu();
 	fImageView = new ImageView();
+	fStatusView = new StatusView();
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
 		.Add(menuBar)
 		.Add(fImageView)
+		.Add(fStatusView)
 		.End();
 
 	BMessenger messenger(this);
@@ -129,11 +131,13 @@ MainWindow::MessageReceived(BMessage* message)
 		case kMsgFitToWindow:
 		{
 			fImageView->SetScaleMode(SCALE_FIT);
+			_UpdateStatus();
 		} break;
 
 		case kMsgActualSize:
 		{
 			fImageView->SetScaleMode(SCALE_ORIGINAL);
+			_UpdateStatus();
 		} break;
 
 		case kMsgNextImage:
@@ -151,6 +155,10 @@ MainWindow::MessageReceived(BMessage* message)
 			DeleteCurrentImage();
 			break;
 		}
+		case 'stat':
+		{
+			_UpdateStatus();
+		} break;
 
 		default:
 		{
@@ -265,7 +273,9 @@ MainWindow::_LoadImage(const entry_ref& ref)
 		return;
 	}
 
+	fCurrentRef = ref;
 	fImageView->SetBitmap(bitmap);
+	_UpdateStatus();
 }
 
 
@@ -402,4 +412,11 @@ void MainWindow::DeleteCurrentImage()
         fCurrentIndex = fFileList.size() - 1;
 
     _LoadImageAtIndex(fCurrentIndex);
+	_UpdateStatus();
+}
+
+
+void MainWindow::_UpdateStatus()
+{
+	fStatusView->Update(&fCurrentRef, fImageView);
 }

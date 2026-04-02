@@ -170,6 +170,8 @@ void ImageView::Rotate90CW()
     }
 
     SetBitmap(rotated);
+	if (Window())
+		Window()->PostMessage('stat');
 }
 
 
@@ -206,4 +208,12 @@ void ImageView::Rotate90CCW()
     }
 
     SetBitmap(rotated);
+	if (Window())
+		Window()->PostMessage('stat');
+}
+
+
+BBitmap* ImageView::Bitmap() const
+{
+	return fBitmap;
 }
