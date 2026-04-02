@@ -7,6 +7,7 @@
 
 
 #include <FilePanel.h>
+#include <vector>
 #include <MenuBar.h>
 #include <MenuItem.h>
 #include <Window.h>
@@ -32,6 +33,15 @@ private:
 			BMenuItem*		fSaveMenuItem;
 			BFilePanel*		fOpenPanel;
 			BFilePanel*		fSavePanel;
+
+			std::vector<entry_ref> fFileList;
+			int32			fCurrentIndex = -1;
+
+			// navigation
+			void			_LoadDirectory(const entry_ref& ref);
+			void			_LoadImageAtIndex(int32 index);
+			void			NextImage();
+			void			PrevImage();
 };
 
 #endif

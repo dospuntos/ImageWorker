@@ -110,6 +110,13 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
                 else
                     SetScaleMode(SCALE_FIT);
                 return;
+			case B_RIGHT_ARROW:
+				Window()->PostMessage('next');
+				return;
+
+			case B_LEFT_ARROW:
+				Window()->PostMessage('prev');
+				return;
         }
     }
 

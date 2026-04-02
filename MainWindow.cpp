@@ -9,6 +9,11 @@
 #include <Alert.h>
 #include <Application.h>
 #include <Catalog.h>
+#include <Directory.h>
+#include <Entry.h>
+#include <Path.h>
+#include <algorithm>
+#include <String.h>
 #include <File.h>
 #include <FindDirectory.h>
 #include <LayoutBuilder.h>
@@ -28,6 +33,8 @@ static const uint32 kMsgOpenFile = 'fopn';
 static const uint32 kMsgSaveFile = 'fsav';
 static const uint32 kMsgFitToWindow = 'fitw';
 static const uint32 kMsgActualSize = 'acts';
+static const uint32 kMsgNextImage = 'next';
+static const uint32 kMsgPrevImage = 'prev';
 
 static const char* kSettingsFile = "quickBitmap_settings";
 
@@ -82,6 +89,7 @@ MainWindow::MessageReceived(BMessage* message)
 			if (message->FindRef("refs", &ref) != B_OK)
 				break;
 
+			_LoadDirectory(ref);
 			_LoadImage(ref);
 			fSaveMenuItem->SetEnabled(true);
 		} break;
@@ -124,6 +132,16 @@ MainWindow::MessageReceived(BMessage* message)
 		case kMsgActualSize:
 		{
 			fImageView->SetScaleMode(SCALE_ORIGINAL);
+		} break;
+
+		case kMsgNextImage:
+		{
+			NextImage();
+		} break;
+
+		case kMsgPrevImage:
+		{
+			PrevImage();
 		} break;
 
 		default:
@@ -253,4 +271,85 @@ MainWindow::_ToggleScaleMode()
 		fImageView->SetScaleMode(SCALE_ORIGINAL);
 	else
 		fImageView->SetScaleMode(SCALE_FIT);
+}
+
+
+static bool _IsImageFile(const entry_ref& ref)
+{
+    BString name(ref.name);
+    name.ToLower();
+
+    return name.EndsWith(".png")
+        || name.EndsWith(".jpg")
+        || name.EndsWith(".jpeg")
+        || name.EndsWith(".bmp")
+        || name.EndsWith(".gif");
+}
+
+
+void MainWindow::_LoadDirectory(const entry_ref& ref)
+{
+    BEntry entry(&ref);
+    BDirectory dir;
+
+    if (entry.GetParent(&dir) != B_OK)
+        return;
+
+    fFileList.clear();
+
+    entry_ref current;
+    while (dir.GetNextRef(&current) == B_OK) {
+        if (_IsImageFile(current))
+            fFileList.push_back(current);
+    }
+
+    // sort alphabetically
+    std::sort(fFileList.begin(), fFileList.end(),
+        [](const entry_ref& a, const entry_ref& b) {
+            return BString(a.name) < BString(b.name);
+        });
+
+    // find current index
+    fCurrentIndex = -1;
+    for (size_t i = 0; i < fFileList.size(); ++i) {
+        if (fFileList[i] == ref) {
+            fCurrentIndex = i;
+            break;
+        }
+    }
+}
+
+
+void MainWindow::_LoadImageAtIndex(int32 index)
+{
+    if (index < 0 || index >= (int32)fFileList.size())
+        return;
+
+    fCurrentIndex = index;
+    _LoadImage(fFileList[index]);
+}
+
+
+void MainWindow::NextImage()
+{
+    if (fFileList.empty())
+        return;
+
+    int32 next = fCurrentIndex + 1;
+    if (next >= (int32)fFileList.size())
+        next = 0; // wrap around
+
+    _LoadImageAtIndex(next);
+}
+
+void MainWindow::PrevImage()
+{
+    if (fFileList.empty())
+        return;
+
+    int32 prev = fCurrentIndex - 1;
+    if (prev < 0)
+        prev = fFileList.size() - 1; // wrap around
+
+    _LoadImageAtIndex(prev);
 }
