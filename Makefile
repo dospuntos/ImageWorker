@@ -32,7 +32,8 @@ APP_MIME_SIG = application/x-vnd.jpw-QuickBitmap
 SRCS =  App.cpp \
 		MainWindow.cpp \
 		ImageView.cpp \
-		StatusView.cpp
+		StatusView.cpp \
+		Constants.cpp
 
 #	Specify the resource definition files to use. Full or relative paths can be
 #	used.

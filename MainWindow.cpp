@@ -5,6 +5,7 @@
 
 
 #include "MainWindow.h"
+#include "Constants.h"
 
 #include <Alert.h>
 #include <Application.h>
@@ -22,6 +23,7 @@
 #include <Path.h>
 #include <Roster.h>
 #include <TranslationUtils.h>
+#include <RecentItems.h>
 #include <View.h>
 
 #include <cstdio>
@@ -29,16 +31,7 @@
 #undef B_TRANSLATION_CONTEXT
 #define B_TRANSLATION_CONTEXT "Window"
 
-static const uint32 kMsgNewFile = 'fnew';
-static const uint32 kMsgOpenFile = 'fopn';
-static const uint32 kMsgSaveFile = 'fsav';
-static const uint32 kMsgFitToWindow = 'fitw';
-static const uint32 kMsgActualSize = 'acts';
-static const uint32 kMsgNextImage = 'next';
-static const uint32 kMsgPrevImage = 'prev';
-static const uint32 kMsgDeleteImage = 'delI';
-static const uint32 kMsgRotate90CW = 'rocw';
-static const uint32 kMsgRotate90CCW = 'rccw';
+
 
 static const char* kSettingsFile = "quickBitmap_settings";
 
@@ -98,6 +91,7 @@ MainWindow::MessageReceived(BMessage* message)
 		case B_SIMPLE_DATA:
 		case B_REFS_RECEIVED:
 		{
+			printf("File received\n");
 			entry_ref ref;
 			if (message->FindRef("refs", &ref) != B_OK)
 				break;
@@ -202,8 +196,13 @@ MainWindow::_BuildMenu()
 	item = new BMenuItem(B_TRANSLATE("New"), new BMessage(kMsgNewFile), 'N');
 	menu->AddItem(item);
 
-	item = new BMenuItem(B_TRANSLATE("Open" B_UTF8_ELLIPSIS), new BMessage(kMsgOpenFile), 'O');
-	menu->AddItem(item);
+
+	BMenuItem* openItem
+		= new BMenuItem(BRecentFilesList::NewFileListMenu(B_TRANSLATE("Open" B_UTF8_ELLIPSIS), NULL,
+							NULL, be_app, 9, true, NULL, kApplicationSignature),
+			new BMessage(kMsgOpenFile));
+	openItem->SetShortcut('O', 0);
+	menu->AddItem(openItem);
 
 	fSaveMenuItem = new BMenuItem(B_TRANSLATE("Save"), new BMessage(kMsgSaveFile), 'S');
 	fSaveMenuItem->SetEnabled(false);

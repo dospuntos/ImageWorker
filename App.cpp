@@ -5,7 +5,7 @@
 
 
 #include "App.h"
-#include "MainWindow.h"
+#include "Constants.h"
 
 #include <AboutWindow.h>
 #include <Catalog.h>
@@ -13,15 +13,13 @@
 #undef B_TRANSLATION_CONTEXT
 #define B_TRANSLATION_CONTEXT "Application"
 
-const char* kApplicationSignature = "application/x-vnd.jpw-QuickBitmap";
-
 
 App::App()
 	:
 	BApplication(kApplicationSignature)
 {
-	MainWindow* mainWindow = new MainWindow();
-	mainWindow->Show();
+	fMainWindow = new MainWindow();
+	fMainWindow->Show();
 }
 
 

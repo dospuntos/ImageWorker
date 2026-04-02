@@ -17,6 +17,11 @@ resource app_version {
 	long_info  = "View, manage and edit images with ease. Inspired by IrfanView."
 };
 
+resource file_types message
+{
+	"types" = "image"
+};
+
 resource vector_icon {
 	$"6E6369660E0500020006023C43C6B9E5E23A85A83CEE414268F44A445900BDE2"
 	$"B7FF40A63503E86B06020006023B2B47BB18653D0FA53D225148297046CA1900"
