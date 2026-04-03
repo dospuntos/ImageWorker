@@ -10,6 +10,7 @@
 
 extern const char* kApplicationSignature;
 extern const char* kApplicationName;
+extern const char* kSettingsFile;
 static const uint32 kMsgNewFile = 'fnew';
 static const uint32 kMsgOpenFile = 'fopn';
 static const uint32 kMsgSaveFile = 'fsav';

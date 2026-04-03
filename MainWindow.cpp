@@ -31,14 +31,9 @@
 #undef B_TRANSLATION_CONTEXT
 #define B_TRANSLATION_CONTEXT "Window"
 
-
-
-static const char* kSettingsFile = "quickBitmap_settings";
-
-
 MainWindow::MainWindow()
 	:
-	BWindow(BRect(100, 100, 500, 400), B_TRANSLATE("Quick Bitmap"), B_TITLED_WINDOW,
+	BWindow(BRect(100, 100, 500, 400), B_TRANSLATE_SYSTEM_NAME("ImageWorker"), B_TITLED_WINDOW,
 		B_ASYNCHRONOUS_CONTROLS | B_QUIT_ON_WINDOW_CLOSE)
 {
 	BMenuBar* menuBar = _BuildMenu();

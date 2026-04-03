@@ -5,7 +5,7 @@
 ## architecture of Haiku.
 
 # The name of the binary.
-NAME = QuickBitmap
+NAME = ImageWorker
 TARGET_DIR = .
 
 # The type of binary, must be one of:
@@ -16,7 +16,7 @@ TARGET_DIR = .
 TYPE = APP
 
 # 	If you plan to use localization, specify the application's MIME signature.
-APP_MIME_SIG = application/x-vnd.jpw-QuickBitmap
+APP_MIME_SIG = application/x-vnd.jpw-ImageWorker
 
 #	The following lines tell Pe and Eddie where the SRCS, RDEFS, and RSRCS are
 #	so that Pe and Eddie can fill them in for you.

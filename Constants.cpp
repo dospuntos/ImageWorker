@@ -9,5 +9,6 @@
 #undef B_TRANSLATION_CONTEXT
 #define B_TRANSLATION_CONTEXT "App"
 
-const char* kApplicationSignature = "application/x-vnd.jpw-QuickBitmap";
-const char* kApplicationName = B_TRANSLATE_SYSTEM_NAME("QuickBitmap");
+const char* kApplicationSignature = "application/x-vnd.jpw-ImageWorker";
+const char* kApplicationName = B_TRANSLATE_SYSTEM_NAME("ImageWorker");
+const char* kSettingsFile = "ImageWorker_settings";

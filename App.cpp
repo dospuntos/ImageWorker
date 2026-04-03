@@ -32,7 +32,7 @@ void
 App::AboutRequested()
 {
 	BAboutWindow* about
-		= new BAboutWindow(B_TRANSLATE_SYSTEM_NAME("QuickBitmap"), kApplicationSignature);
+		= new BAboutWindow(B_TRANSLATE_SYSTEM_NAME("ImageWorker"), kApplicationSignature);
 	about->AddDescription(B_TRANSLATE("A simple but powerfull image viewer and editor. Inspired by IrfanView."));
 	about->AddCopyright(2026, "Johan Wagenheim");
 	about->Show();
