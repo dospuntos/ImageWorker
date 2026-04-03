@@ -13,6 +13,7 @@
 #include <Window.h>
 #include "ImageView.h"
 #include "StatusView.h"
+#include "Toolbar.h"
 #include <StringView.h>
 
 class MainWindow : public BWindow
@@ -28,6 +29,7 @@ private:
 			BMenuBar*		_BuildMenu();
 			ImageView*		fImageView;
 			StatusView*		fStatusView;
+			BToolBar*		fToolBar;
 
 			status_t		_LoadSettings(BMessage& settings);
 			status_t		_SaveSettings();

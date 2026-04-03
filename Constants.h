@@ -21,11 +21,22 @@ static const uint32 kMsgPrevImage = 'prev';
 static const uint32 kMsgDeleteImage = 'delI';
 static const uint32 kMsgRotate90CW = 'rocw';
 static const uint32 kMsgRotate90CCW = 'rccw';
+static const uint32 kMsgShowSettings = 'stng';
+static const uint32 kMsgShowHelp = 'help';
 
+/*
 enum {
-	// Text Transformations
-	M_TRANSFORM_UPPERCASE              = 'upcs',
-};
+    M_NEW_FILE      = 'fnew',
+    M_OPEN_FILE     = 'fopn',
+    M_SAVE_FILE     = 'fsav',
+    M_FIT_TO_WINDOW = 'fitw',
+    M_ACTUAL_SIZE   = 'acts',
+    M_NEXT_IMAGE    = 'next',
+    M_PREV_IMAGE    = 'prev',
+    M_DELETE_IMAGE  = 'delI',
+    M_ROTATE_90_CW  = 'rocw',
+    M_ROTATE_90_CCW = 'rccw',
+};*/
 
 
 #endif // CONSTANTS_H

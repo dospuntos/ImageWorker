@@ -22,12 +22,6 @@ StatusView::StatusView()
 void StatusView::Draw(BRect updateRect)
 {
 	BStringView::Draw(updateRect);
-
-    // Draw top separator line
-    SetHighColor(ui_color(B_WINDOW_BORDER_COLOR));
-
-    StrokeLine(BPoint(Bounds().left, Bounds().top),
-               BPoint(Bounds().right, Bounds().top));
 }
 
 void StatusView::Update(const entry_ref* ref,

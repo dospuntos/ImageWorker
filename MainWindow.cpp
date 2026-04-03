@@ -25,6 +25,7 @@
 #include <TranslationUtils.h>
 #include <RecentItems.h>
 #include <View.h>
+#include <SeparatorView.h>
 
 #include <cstdio>
 
@@ -33,16 +34,20 @@
 
 MainWindow::MainWindow()
 	:
-	BWindow(BRect(100, 100, 500, 400), B_TRANSLATE_SYSTEM_NAME("ImageWorker"), B_TITLED_WINDOW,
+	BWindow(BRect(100, 100, 500, 400), B_TRANSLATE_SYSTEM_NAME(kApplicationName), B_TITLED_WINDOW,
 		B_ASYNCHRONOUS_CONTROLS | B_QUIT_ON_WINDOW_CLOSE)
 {
 	BMenuBar* menuBar = _BuildMenu();
 	fImageView = new ImageView();
 	fStatusView = new StatusView();
+	fToolBar = CreateToolbar(this);
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
 		.Add(menuBar)
+		.Add(fToolBar)
+		.Add(new BSeparatorView(B_HORIZONTAL))
 		.Add(fImageView)
+		.Add(new BSeparatorView(B_HORIZONTAL))
 		.AddGroup(B_HORIZONTAL)
 			.SetInsets(5, 3, 5, 3)
 			.Add(fStatusView)
