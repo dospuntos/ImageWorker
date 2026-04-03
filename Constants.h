@@ -23,6 +23,8 @@ static const uint32 kMsgRotate90CW = 'rocw';
 static const uint32 kMsgRotate90CCW = 'rccw';
 static const uint32 kMsgShowSettings = 'stng';
 static const uint32 kMsgShowHelp = 'help';
+static const uint32 kMsgPaste = 'past';
+static const uint32 kMsgClearImage = 'clri';
 
 /*
 enum {

@@ -23,6 +23,7 @@
 #include <Path.h>
 #include <Roster.h>
 #include <TranslationUtils.h>
+#include <Clipboard.h>
 #include <RecentItems.h>
 #include <View.h>
 #include <SeparatorView.h>
@@ -174,6 +175,62 @@ MainWindow::MessageReceived(BMessage* message)
 			_UpdateStatus();
 		} break;
 
+		case kMsgPaste:
+		{
+			if (!be_clipboard->Lock())
+				break;
+
+			BMessage* data = be_clipboard->Data();
+			if (!data) {
+				be_clipboard->Unlock();
+				break;
+			}
+
+			BBitmap* bitmap = nullptr;
+
+			// Try direct bitmap (rare but possible)
+			if (data->FindPointer("bitmap", (void**)&bitmap) == B_OK && bitmap) {
+				fImageView->SetBitmap(new BBitmap(bitmap)); // copy
+			} else {
+				// Try standard image formats via Translation Kit
+				const void* buffer;
+				ssize_t size;
+
+				if (data->FindData("image/png", B_MIME_TYPE, &buffer, &size) == B_OK ||
+					data->FindData("image/jpeg", B_MIME_TYPE, &buffer, &size) == B_OK) {
+
+					BMemoryIO stream(buffer, size);
+					bitmap = BTranslationUtils::GetBitmap(&stream);
+
+					if (bitmap)
+						fImageView->SetBitmap(bitmap);
+				}
+			}
+
+			be_clipboard->Unlock();
+
+			// Reset state (new "image session")
+			fCurrentRef = entry_ref();   // clear filename
+			fFileList.clear();
+			fCurrentIndex = -1;
+
+			_UpdateStatus();
+
+			break;
+		}
+
+		case kMsgClearImage:
+		{
+			fImageView->Clear();
+
+			fCurrentRef = entry_ref();
+			fFileList.clear();
+			fCurrentIndex = -1;
+
+			_UpdateStatus();
+			break;
+		}
+
 		default:
 		{
 			BWindow::MessageReceived(message);
@@ -221,6 +278,10 @@ MainWindow::_BuildMenu()
 
 	// menu 'Edit'
 	menu = new BMenu(B_TRANSLATE("Edit"));
+
+	menu->AddItem(new BMenuItem("Paste", new BMessage(kMsgPaste), 'V'));
+
+	menu->AddSeparatorItem();
 
 	item = new BMenuItem(B_TRANSLATE("Rotate 90"), new BMessage(kMsgRotate90CW), 'R');
 	menu->AddItem(item);

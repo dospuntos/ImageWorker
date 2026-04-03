@@ -4,6 +4,7 @@
  */
 
 #include "ImageView.h"
+#include "Constants.h"
 #include <Window.h>
 #include <Cursor.h>
 
@@ -50,6 +51,9 @@ ImageView::SetBitmap(BBitmap* bitmap)
     delete fBitmap;
     fBitmap = bitmap;
 	fOffset = BPoint(0,0);
+	fZoom = 1.0f;
+	fScaleMode = SCALE_FIT;
+
     Invalidate();
 }
 
@@ -175,10 +179,40 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
 			case '-':
 				ZoomOut();
 				return;
+			case 'd':
+			case 'D':
+			{
+			if (Window())
+				Window()->PostMessage(kMsgClearImage);
+			return;
+			}
+
+			case 'h':
+			case 'H':
+				FlipHorizontal();
+				return;
+
+			case 'v':
+			case 'V':
+				FlipVertical();
+				return;
         }
     }
 
     BView::KeyDown(bytes, numBytes);
+}
+
+
+void ImageView::Clear()
+{
+    delete fBitmap;
+    fBitmap = nullptr;
+
+    fOffset = BPoint(0, 0);
+    fZoom = 1.0f;
+    fScaleMode = SCALE_FIT;
+
+    Invalidate();
 }
 
 
@@ -256,6 +290,64 @@ void ImageView::Rotate90CCW()
 	if (Window())
 		Window()->PostMessage('stat');
 }
+
+
+void ImageView::FlipHorizontal()
+{
+    if (!fBitmap)
+        return;
+
+    int32 width  = fBitmap->Bounds().IntegerWidth() + 1;
+    int32 height = fBitmap->Bounds().IntegerHeight() + 1;
+
+    uint8* bits = (uint8*)fBitmap->Bits();
+    int32 bpr = fBitmap->BytesPerRow();
+
+    for (int32 y = 0; y < height; ++y) {
+        uint32* row = (uint32*)(bits + y * bpr);
+
+        for (int32 x = 0; x < width / 2; ++x) {
+            uint32 tmp = row[x];
+            row[x] = row[width - 1 - x];
+            row[width - 1 - x] = tmp;
+        }
+    }
+
+    Invalidate();
+
+    if (Window())
+        Window()->PostMessage('stat');
+}
+
+
+void ImageView::FlipVertical()
+{
+    if (!fBitmap)
+        return;
+
+    int32 width  = fBitmap->Bounds().IntegerWidth() + 1;
+    int32 height = fBitmap->Bounds().IntegerHeight() + 1;
+
+    uint8* bits = (uint8*)fBitmap->Bits();
+    int32 bpr = fBitmap->BytesPerRow();
+
+    for (int32 y = 0; y < height / 2; ++y) {
+        uint8* rowTop = bits + y * bpr;
+        uint8* rowBottom = bits + (height - 1 - y) * bpr;
+
+        for (int32 x = 0; x < width * 4; ++x) {
+            uint8 tmp = rowTop[x];
+            rowTop[x] = rowBottom[x];
+            rowBottom[x] = tmp;
+        }
+    }
+
+    Invalidate();
+
+    if (Window())
+        Window()->PostMessage('stat');
+}
+
 
 float ImageView::Zoom() const
 {

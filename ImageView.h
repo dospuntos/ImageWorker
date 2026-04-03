@@ -39,8 +39,11 @@ public:
 	BPoint fLastMouse;
 	void _ClampOffset();
 
+	void Clear();
 	void Rotate90CW();
 	void Rotate90CCW();
+	void FlipHorizontal();
+	void FlipVertical();
 
 	float Zoom() const;
 	void SetZoom(float zoom);
