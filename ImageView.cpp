@@ -143,6 +143,11 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
                     Window()->PostMessage(B_QUIT_REQUESTED);
                 return;
 
+			case 'o':
+			case 'O':
+				if (Window())
+					Window()->PostMessage(M_OPEN_FILE);
+				return;
             case 'f':
             case 'F':
                 // toggle scale mode
@@ -183,7 +188,7 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
 			case 'D':
 			{
 			if (Window())
-				Window()->PostMessage(kMsgClearImage);
+				Window()->PostMessage(M_CLEAR_IMAGE);
 			return;
 			}
 
@@ -464,10 +469,17 @@ void ImageView::MouseWheelChanged(BPoint where, float, float y)
 
 void ImageView::MouseDown(BPoint where)
 {
-	fDragging = true;
-	fLastMouse = where;
+	uint32 mouseButtonStates = 0;
+	if (Window()->CurrentMessage() != NULL)
+		mouseButtonStates = Window()->CurrentMessage()->FindInt32("buttons");
 
-	SetMouseEventMask(B_POINTER_EVENTS, B_LOCK_WINDOW_FOCUS);
+	if (mouseButtonStates & B_SECONDARY_MOUSE_BUTTON) {
+		// Right click
+		fDragging = true;
+		fLastMouse = where;
+
+		SetMouseEventMask(B_POINTER_EVENTS, B_LOCK_WINDOW_FOCUS);
+	}
 }
 
 void ImageView::MouseUp(BPoint)
@@ -517,7 +529,6 @@ void ImageView::_ClampOffset()
     float bmpW = fBitmap->Bounds().Width() + 1;
     float bmpH = fBitmap->Bounds().Height() + 1;
 
-    // Use same zoom logic as Draw()
     float zoom;
     if (fScaleMode == SCALE_FIT) {
         float scaleX = viewW / bmpW;

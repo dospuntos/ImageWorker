@@ -10,12 +10,13 @@
 #include <stdio.h>
 #include <InterfaceDefs.h>
 #include <File.h>
+#include <String.h>
 
 StatusView::StatusView()
     : BStringView("status", "No image")
 {
     SetAlignment(B_ALIGN_LEFT);
-	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
+	//SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 }
 
 
@@ -43,11 +44,9 @@ void StatusView::Update(const entry_ref* ref,
     int32 width = bmp->Bounds().IntegerWidth() + 1;
     int32 height = bmp->Bounds().IntegerHeight() + 1;
 
-    const char* name = (ref && ref->name) ? ref->name : "(unnamed)";
+    BString name = (ref && ref->name) ? ref->name : "(unnamed)";
 
-	const char* mode = (imageView->getScaleMode() == SCALE_FIT)
-    ? "Fit"
-    : "";
+	BString mode = (imageView->getScaleMode() == SCALE_FIT) ? "Fit" : "";
 
     // index
     char indexBuf[32] = "";
@@ -70,10 +69,10 @@ void StatusView::Update(const entry_ref* ref,
     snprintf(buffer, sizeof(buffer),
     "%s%s  |  %d x %d  |  %.0f%% %s  |  %s/%s",
 		indexBuf,
-		name,
+		name.String(),
 		width, height,
 		zoom * 100.0f,
-		mode,
+		mode.String(),
 		diskBuf, memBuf);
 
     SetText(buffer);

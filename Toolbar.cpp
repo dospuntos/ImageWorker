@@ -25,11 +25,11 @@ CreateToolbar(BHandler* target)
 {
 	BToolBar* toolbar = new BToolBar(B_HORIZONTAL);
 
-	toolbar->AddAction(new BMessage(kMsgNewFile), target, ResourceToBitmap("NEW_ICON"),
+	toolbar->AddAction(new BMessage(M_NEW_FILE), target, ResourceToBitmap("NEW_ICON"),
 		B_TRANSLATE("New"), "", false);
-	toolbar->AddAction(new BMessage(kMsgOpenFile), target, ResourceToBitmap("OPEN_ICON"),
+	toolbar->AddAction(new BMessage(M_OPEN_FILE), target, ResourceToBitmap("OPEN_ICON"),
 		B_TRANSLATE("Open file" B_UTF8_ELLIPSIS), "", false);
-	toolbar->AddAction(new BMessage(kMsgSaveFile), target, ResourceToBitmap("SAVE_ICON"),
+	toolbar->AddAction(new BMessage(M_SAVE_FILE), target, ResourceToBitmap("SAVE_ICON"),
 		B_TRANSLATE("Save file"), "", false);
 
 	toolbar->GroupLayout()->AddItem(
@@ -73,9 +73,9 @@ CreateToolbar(BHandler* target)
 	toolbar->AddGlue();
 
 	toolbar->AddSeparator();
-	toolbar->AddAction(new BMessage(kMsgShowSettings), target, ResourceToBitmap("SETTINGS_ICON"),
+	toolbar->AddAction(new BMessage(M_SHOW_SETTINGS), target, ResourceToBitmap("SETTINGS_ICON"),
 		B_TRANSLATE("Settings" B_UTF8_ELLIPSIS), "", false);
-	toolbar->AddAction(new BMessage(kMsgShowHelp), target, ResourceToBitmap("HELP_ICON"),
+	toolbar->AddAction(new BMessage(M_SHOW_HELP), target, ResourceToBitmap("HELP_ICON"),
 		B_TRANSLATE("Help" B_UTF8_ELLIPSIS), "", false);
 
 	return toolbar;

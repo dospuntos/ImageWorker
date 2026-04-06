@@ -92,7 +92,6 @@ MainWindow::MessageReceived(BMessage* message)
 		case B_SIMPLE_DATA:
 		case B_REFS_RECEIVED:
 		{
-			printf("File received\n");
 			entry_ref ref;
 			if (message->FindRef("refs", &ref) != B_OK)
 				break;
@@ -116,58 +115,68 @@ MainWindow::MessageReceived(BMessage* message)
 			}
 		} break;
 
-		case kMsgNewFile:
+		case M_NEW_FILE:
 		{
 			fSaveMenuItem->SetEnabled(false);
+
 			printf("New\n");
 		} break;
 
-		case kMsgOpenFile:
+		case M_OPEN_FILE:
 		{
 			fOpenPanel->Show();
 		} break;
 
-		case kMsgSaveFile:
+		case M_SAVE_FILE:
 		{
 			fSavePanel->Show();
 		} break;
 
-		case kMsgFitToWindow:
+		case M_FIT_TO_WINDOW:
 		{
 			fImageView->SetScaleMode(SCALE_FIT);
 			_UpdateStatus();
 		} break;
 
-		case kMsgActualSize:
+		case M_ACTUAL_SIZE:
 		{
 			fImageView->SetScaleMode(SCALE_ORIGINAL);
 			_UpdateStatus();
 		} break;
 
-		case kMsgNextImage:
+		case M_NEXT_IMAGE:
 		{
 			NextImage();
 		} break;
 
-		case kMsgPrevImage:
+		case M_PREV_IMAGE:
 		{
 			PrevImage();
 		} break;
 
-		case kMsgDeleteImage:
+		case M_DELETE_IMAGE:
 		{
 			DeleteCurrentImage();
 			break;
 		}
-
-		case kMsgRotate90CW:
+		case M_ROTATE_90_CW:
 		{
 			fImageView->Rotate90CW();
 		} break;
 
-		case kMsgRotate90CCW:
+		case M_ROTATE_90_CCW:
 		{
 			fImageView->Rotate90CCW();
+		} break;
+
+		case M_FLIP_VERTICAL:
+		{
+			fImageView->FlipVertical();
+		} break;
+
+		case M_FLIP_HORIZONTAL:
+		{
+			fImageView->FlipHorizontal();
 		} break;
 
 		case 'stat':
@@ -175,7 +184,7 @@ MainWindow::MessageReceived(BMessage* message)
 			_UpdateStatus();
 		} break;
 
-		case kMsgPaste:
+		case M_PASTE:
 		{
 			if (!be_clipboard->Lock())
 				break;
@@ -210,16 +219,12 @@ MainWindow::MessageReceived(BMessage* message)
 			be_clipboard->Unlock();
 
 			// Reset state (new "image session")
-			fCurrentRef = entry_ref();   // clear filename
-			fFileList.clear();
-			fCurrentIndex = -1;
-
-			_UpdateStatus();
+			PostMessage(M_CLEAR_IMAGE);
 
 			break;
 		}
 
-		case kMsgClearImage:
+		case M_CLEAR_IMAGE:
 		{
 			fImageView->Clear();
 
@@ -250,18 +255,17 @@ MainWindow::_BuildMenu()
 	// menu 'File'
 	menu = new BMenu(B_TRANSLATE("File"));
 
-	item = new BMenuItem(B_TRANSLATE("New"), new BMessage(kMsgNewFile), 'N');
+	item = new BMenuItem(B_TRANSLATE("New"), new BMessage(M_NEW_FILE), 'N');
 	menu->AddItem(item);
-
 
 	BMenuItem* openItem
 		= new BMenuItem(BRecentFilesList::NewFileListMenu(B_TRANSLATE("Open" B_UTF8_ELLIPSIS), NULL,
 							NULL, be_app, 9, true, NULL, kApplicationSignature),
-			new BMessage(kMsgOpenFile));
+			new BMessage(M_OPEN_FILE));
 	openItem->SetShortcut('O', 0);
 	menu->AddItem(openItem);
 
-	fSaveMenuItem = new BMenuItem(B_TRANSLATE("Save"), new BMessage(kMsgSaveFile), 'S');
+	fSaveMenuItem = new BMenuItem(B_TRANSLATE("Save"), new BMessage(M_SAVE_FILE), 'S');
 	fSaveMenuItem->SetEnabled(false);
 	menu->AddItem(fSaveMenuItem);
 
@@ -279,14 +283,20 @@ MainWindow::_BuildMenu()
 	// menu 'Edit'
 	menu = new BMenu(B_TRANSLATE("Edit"));
 
-	menu->AddItem(new BMenuItem("Paste", new BMessage(kMsgPaste), 'V'));
+	menu->AddItem(new BMenuItem("Paste", new BMessage(M_PASTE), 'V'));
 
 	menu->AddSeparatorItem();
 
-	item = new BMenuItem(B_TRANSLATE("Rotate 90"), new BMessage(kMsgRotate90CW), 'R');
+	item = new BMenuItem(B_TRANSLATE("Rotate 90"), new BMessage(M_ROTATE_90_CW), 'R');
 	menu->AddItem(item);
 
-	item = new BMenuItem(B_TRANSLATE("Rotate -90"), new BMessage(kMsgRotate90CCW), 'L');
+	item = new BMenuItem(B_TRANSLATE("Rotate -90"), new BMessage(M_ROTATE_90_CCW), 'L');
+	menu->AddItem(item);
+
+	item = new BMenuItem(B_TRANSLATE("Flip vertical"), new BMessage(M_FLIP_VERTICAL));
+	menu->AddItem(item);
+
+	item = new BMenuItem(B_TRANSLATE("Flip horizontal"), new BMessage(M_FLIP_HORIZONTAL));
 	menu->AddItem(item);
 
 	menuBar->AddItem(menu);
@@ -294,10 +304,10 @@ MainWindow::_BuildMenu()
 	// menu 'View'
 	menu = new BMenu(B_TRANSLATE("View"));
 
-	item = new BMenuItem(B_TRANSLATE("Fit to window"), new BMessage(kMsgFitToWindow), 'F');
+	item = new BMenuItem(B_TRANSLATE("Fit to window"), new BMessage(M_FIT_TO_WINDOW), 'F');
 	menu->AddItem(item);
 
-	item = new BMenuItem(B_TRANSLATE("Actual size"), new BMessage(kMsgActualSize), '1');
+	item = new BMenuItem(B_TRANSLATE("Actual size"), new BMessage(M_ACTUAL_SIZE), '1');
 	menu->AddItem(item);
 
 	menuBar->AddItem(menu);
@@ -392,6 +402,10 @@ static bool _IsImageFile(const entry_ref& ref)
         || name.EndsWith(".jpg")
         || name.EndsWith(".jpeg")
         || name.EndsWith(".bmp")
+		|| name.EndsWith(".heic")
+		|| name.EndsWith(".heif")
+		|| name.EndsWith(".hvif")
+		|| name.EndsWith(".svg")
         || name.EndsWith(".gif");
 }
 
@@ -509,6 +523,9 @@ void MainWindow::DeleteCurrentImage()
 
 void MainWindow::_UpdateStatus()
 {
+	BString name = (fCurrentRef.name) ? fCurrentRef.name : "(unnamed)";
+	name << " - " << kApplicationName;
+	SetTitle(name);
     fStatusView->Update(&fCurrentRef,
                         fImageView,
                         fCurrentIndex,

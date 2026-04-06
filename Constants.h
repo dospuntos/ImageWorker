@@ -11,22 +11,7 @@
 extern const char* kApplicationSignature;
 extern const char* kApplicationName;
 extern const char* kSettingsFile;
-static const uint32 kMsgNewFile = 'fnew';
-static const uint32 kMsgOpenFile = 'fopn';
-static const uint32 kMsgSaveFile = 'fsav';
-static const uint32 kMsgFitToWindow = 'fitw';
-static const uint32 kMsgActualSize = 'acts';
-static const uint32 kMsgNextImage = 'next';
-static const uint32 kMsgPrevImage = 'prev';
-static const uint32 kMsgDeleteImage = 'delI';
-static const uint32 kMsgRotate90CW = 'rocw';
-static const uint32 kMsgRotate90CCW = 'rccw';
-static const uint32 kMsgShowSettings = 'stng';
-static const uint32 kMsgShowHelp = 'help';
-static const uint32 kMsgPaste = 'past';
-static const uint32 kMsgClearImage = 'clri';
 
-/*
 enum {
     M_NEW_FILE      = 'fnew',
     M_OPEN_FILE     = 'fopn',
@@ -38,7 +23,16 @@ enum {
     M_DELETE_IMAGE  = 'delI',
     M_ROTATE_90_CW  = 'rocw',
     M_ROTATE_90_CCW = 'rccw',
-};*/
+	M_FLIP_VERTICAL = 'flpv',
+	M_FLIP_HORIZONTAL = 'flph',
+	M_CLEAR_IMAGE   = 'clri',
+
+	M_SHOW_SETTINGS = 'stng',
+	M_SHOW_HELP     = 'help',
+	M_PASTE			= 'past',
+	M_COPY			= 'copy',
+
+};
 
 
 #endif // CONSTANTS_H
