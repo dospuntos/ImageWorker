@@ -18,6 +18,7 @@ public:
 
 	virtual void Draw(BRect updateRect);
 
+	void SetStatus(BString status);
     void Update(const entry_ref* ref,
             const ImageView* imageView,
             int32 index,

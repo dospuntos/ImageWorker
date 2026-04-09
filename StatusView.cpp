@@ -25,57 +25,48 @@ void StatusView::Draw(BRect updateRect)
 	BStringView::Draw(updateRect);
 }
 
+void StatusView::SetStatus(BString status)
+{
+	SetText(status);
+}
+
 void StatusView::Update(const entry_ref* ref,
                         const ImageView* imageView,
                         int32 index,
                         int32 total)
 {
-    if (!imageView) {
+    if (imageView == nullptr || imageView->Bitmap() == nullptr) {
         SetText("No image");
         return;
     }
 
     BBitmap* bmp = imageView->Bitmap();
-    if (!bmp) {
-        SetText("No image");
-        return;
-    }
-
     int32 width = bmp->Bounds().IntegerWidth() + 1;
     int32 height = bmp->Bounds().IntegerHeight() + 1;
 
-    BString name = (ref && ref->name) ? ref->name : "(unnamed)";
+    BString text;
 
-	BString mode = (imageView->getScaleMode() == SCALE_FIT) ? "Fit" : "";
+    if (total > 0 && index >= 0)
+        text.SetToFormat("%d/%d  |  ", index + 1, total);
 
-    // index
-    char indexBuf[32] = "";
-    if (total > 0 && index >= 0) {
-        snprintf(indexBuf, sizeof(indexBuf), "%d/%d  | ",
-            index + 1, total);
-    }
+    BString name = (ref != nullptr && ref->name != nullptr)
+        ? ref->name : "(unnamed)";
+    text << name << "  |  "
+         << width << " x " << height << "  |  ";
 
-    // zoom
-    float zoom = imageView->EffectiveZoom();
-    char zoomBuf[32];
-    snprintf(zoomBuf, sizeof(zoomBuf), "%.0f%%", zoom * 100.0f);
+    BString zoom;
+	zoom.SetToFormat("%.0f%%", imageView->EffectiveZoom() * 100.0f);
+	text << zoom;
 
-    // sizes
+    if (imageView->getScaleMode() == SCALE_FIT)
+        text << " Fit";
+
     char diskBuf[32], memBuf[32];
     _FormatSize(diskBuf, _GetFileSize(ref));
     _FormatSize(memBuf, _GetBitmapSize(bmp));
+    text << "  |  " << diskBuf << "/" << memBuf;
 
-    char buffer[512];
-    snprintf(buffer, sizeof(buffer),
-    "%s%s  |  %d x %d  |  %.0f%% %s  |  %s/%s",
-		indexBuf,
-		name.String(),
-		width, height,
-		zoom * 100.0f,
-		mode.String(),
-		diskBuf, memBuf);
-
-    SetText(buffer);
+    SetText(text);
 }
 
 

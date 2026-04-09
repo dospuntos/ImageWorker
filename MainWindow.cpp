@@ -23,10 +23,14 @@
 #include <Path.h>
 #include <Roster.h>
 #include <TranslationUtils.h>
+#include <TranslatorRoster.h>
+#include <TranslationKit.h>
+#include <BitmapStream.h>
 #include <Clipboard.h>
 #include <RecentItems.h>
 #include <View.h>
 #include <SeparatorView.h>
+#include <NodeInfo.h>
 
 #include <cstdio>
 
@@ -69,6 +73,9 @@ MainWindow::MainWindow()
 		MoveTo(frame.LeftTop());
 		ResizeTo(frame.Width(), frame.Height());
 	}
+
+	settings.FindRef("lastSaveDir", &fLastSaveDir);
+
 	MoveOnScreen();
 	fStatusView->SetAlignment(B_ALIGN_LEFT);
 	fStatusView->SetExplicitMinSize(BSize(B_SIZE_UNSET, 20));
@@ -111,7 +118,43 @@ MainWindow::MessageReceived(BMessage* message)
 				BEntry entry(&directory, name);
 				BPath path = BPath(&entry);
 
-				printf("Save path: %s\n", path.Path());
+				BFile file(path.Path(), B_WRITE_ONLY | B_CREATE_FILE | B_ERASE_FILE);
+				if (file.InitCheck() != B_OK) {
+					printf("Failed to open file for writing\n");
+					break;
+				}
+
+				BBitmap* bitmap = fImageView->Bitmap();
+				if (!bitmap)
+					break;
+
+				BBitmapStream stream(bitmap);
+
+				// Save as PNG for now
+				status_t result = BTranslatorRoster::Default()->Translate(
+					&stream,
+					NULL,
+					NULL,
+					&file,
+					B_PNG_FORMAT
+				);
+
+				stream.DetachBitmap(&bitmap);
+
+				if (result == B_OK) {
+					printf("Saved to: %s\n", path.Path());
+
+					// Update current file
+					fCurrentRef = entry_ref();
+					entry.GetRef(&fCurrentRef);
+
+					// Remember directory
+					fLastSaveDir = ref;
+
+					_UpdateStatus();
+				} else {
+					printf("Save failed\n");
+				}
 			}
 		} break;
 
@@ -124,11 +167,30 @@ MainWindow::MessageReceived(BMessage* message)
 
 		case M_OPEN_FILE:
 		{
+			if (fLastSaveDir.name) {
+				BEntry entry(&fLastSaveDir);
+				BDirectory dir(&entry);
+				fOpenPanel->SetPanelDirectory(&dir);
+			}
 			fOpenPanel->Show();
 		} break;
 
 		case M_SAVE_FILE:
 		{
+			if (!fImageView->Bitmap())
+				break;
+
+			if (fCurrentRef.name) {
+				fSavePanel->SetSaveText(fCurrentRef.name);
+			}
+
+			// Set directory
+			if (fLastSaveDir.name) {
+				BEntry entry(&fLastSaveDir);
+				BDirectory dir(&entry);
+				fSavePanel->SetPanelDirectory(&dir);
+			}
+
 			fSavePanel->Show();
 		} break;
 
@@ -357,6 +419,8 @@ MainWindow::_SaveSettings()
 
 	BMessage settings;
 	status = settings.AddRect("main_window_rect", Frame());
+	if (fLastSaveDir.device >= 0)
+		status = settings.AddRef("lastSaveDir", &fLastSaveDir);
 
 	if (status == B_OK)
 		status = settings.Flatten(&file);
@@ -368,14 +432,23 @@ MainWindow::_SaveSettings()
 void
 MainWindow::_LoadImage(const entry_ref& ref)
 {
+	BString statusMsg;
 	BBitmap* bitmap = BTranslationUtils::GetBitmap(&ref);
 	if (bitmap == nullptr) {
-		printf("Failed to load image\n");
+		statusMsg.SetToFormat("Failed to load image: %s", ref.name);
+		fStatusView->SetStatus(statusMsg);
+		fImageView->Clear();
 		return;
 	}
 
 	fCurrentRef = ref;
 	fImageView->SetBitmap(bitmap);
+
+	BEntry entry(&ref);
+	BEntry parent;
+	if (entry.GetParent(&parent) == B_OK)
+		parent.GetRef(&fLastSaveDir);
+
 	_UpdateStatus();
 }
 
@@ -395,18 +468,16 @@ MainWindow::_ToggleScaleMode()
 
 static bool _IsImageFile(const entry_ref& ref)
 {
-    BString name(ref.name);
-    name.ToLower();
+    BNode node(&ref);
+    if (node.InitCheck() != B_OK)
+        return false;
 
-    return name.EndsWith(".png")
-        || name.EndsWith(".jpg")
-        || name.EndsWith(".jpeg")
-        || name.EndsWith(".bmp")
-		|| name.EndsWith(".heic")
-		|| name.EndsWith(".heif")
-		|| name.EndsWith(".hvif")
-		|| name.EndsWith(".svg")
-        || name.EndsWith(".gif");
+    BNodeInfo nodeInfo(&node);
+    char mimeType[B_MIME_TYPE_LENGTH];
+    if (nodeInfo.GetType(mimeType) != B_OK)
+        return false;
+
+    return strncmp(mimeType, "image/", 6) == 0;
 }
 
 
@@ -512,7 +583,7 @@ void MainWindow::DeleteCurrentImage()
         return;
     }
 
-    // Stay at same index if possible (next image slides into place)
+    // Stay at same index if possible
     if (fCurrentIndex >= (int32)fFileList.size())
         fCurrentIndex = fFileList.size() - 1;
 

@@ -43,6 +43,8 @@ private:
 			std::vector<entry_ref> fFileList;
 			int32			fCurrentIndex = -1;
 			entry_ref		fCurrentRef;
+			entry_ref		fLastSaveDir;
+			bool			fHasImage;
 
 
 			// navigation
