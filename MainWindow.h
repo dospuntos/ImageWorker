@@ -35,6 +35,7 @@ private:
 			status_t		_SaveSettings();
 			void			_LoadImage(const entry_ref& ref);
 			void			_UpdateStatus();
+			void			_ShowImageInfo();
 
 			BMenuItem*		fSaveMenuItem;
 			BFilePanel*		fOpenPanel;
@@ -45,6 +46,7 @@ private:
 			entry_ref		fCurrentRef;
 			entry_ref		fLastSaveDir;
 			bool			fHasImage;
+			bigtime_t		fLoadTime;
 
 
 			// navigation

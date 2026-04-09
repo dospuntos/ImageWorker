@@ -26,6 +26,7 @@ enum {
 	M_FLIP_VERTICAL = 'flpv',
 	M_FLIP_HORIZONTAL = 'flph',
 	M_CLEAR_IMAGE   = 'clri',
+	M_SHOW_INFO		= 'info',
 
 	M_SHOW_SETTINGS = 'stng',
 	M_SHOW_HELP     = 'help',

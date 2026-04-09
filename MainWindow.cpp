@@ -6,6 +6,7 @@
 
 #include "MainWindow.h"
 #include "Constants.h"
+#include "Utils.h"
 
 #include <Alert.h>
 #include <Application.h>
@@ -31,6 +32,9 @@
 #include <View.h>
 #include <SeparatorView.h>
 #include <NodeInfo.h>
+#include <Path.h>
+#include <Entry.h>
+#include <Node.h>
 
 #include <cstdio>
 
@@ -298,6 +302,12 @@ MainWindow::MessageReceived(BMessage* message)
 			break;
 		}
 
+		case M_SHOW_INFO:
+		{
+			_ShowImageInfo();
+			break;
+		}
+
 		default:
 		{
 			BWindow::MessageReceived(message);
@@ -432,6 +442,7 @@ MainWindow::_SaveSettings()
 void
 MainWindow::_LoadImage(const entry_ref& ref)
 {
+	bigtime_t start = system_time();
 	BString statusMsg;
 	BBitmap* bitmap = BTranslationUtils::GetBitmap(&ref);
 	if (bitmap == nullptr) {
@@ -449,6 +460,8 @@ MainWindow::_LoadImage(const entry_ref& ref)
 	if (entry.GetParent(&parent) == B_OK)
 		parent.GetRef(&fLastSaveDir);
 
+	bigtime_t end = system_time();
+	fLoadTime = end - start;
 	_UpdateStatus();
 }
 
@@ -554,7 +567,8 @@ void MainWindow::DeleteCurrentImage()
 	BAlert* alert = new BAlert("Confirm",
 		"Delete this image permanently?",
 		"Cancel", "Delete", nullptr,
-		B_WIDTH_AS_USUAL, B_WARNING_ALERT);
+		B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_WARNING_ALERT);
+	alert->SetShortcut(0, B_ESCAPE);
 
 	if (alert->Go() != 1)
 		return;
@@ -601,4 +615,86 @@ void MainWindow::_UpdateStatus()
                         fImageView,
                         fCurrentIndex,
                         fFileList.size());
+}
+
+
+void MainWindow::_ShowImageInfo()
+{
+    BBitmap* bitmap = fImageView->Bitmap();
+    if (!bitmap) {
+        BAlert* alert = new BAlert("Info", "No image loaded.", "OK", NULL, NULL, B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_WARNING_ALERT);
+		alert->SetShortcut(0, B_ESCAPE);
+		alert->Go();
+        return;
+    }
+
+    BString info("IMAGE PROPERTIES:\n\n");
+
+    // --- File info ---
+    if (fCurrentRef.name) {
+        info << "File name: " << fCurrentRef.name << "\n";
+
+        BEntry entry(&fCurrentRef);
+        BPath path;
+        entry.GetPath(&path);
+
+		// Folder
+        BEntry parent;
+        if (entry.GetParent(&parent) == B_OK) {
+            BPath parentPath;
+            parent.GetPath(&parentPath);
+            info << "Folder: " << parentPath.Path() << "\n";
+        }
+
+		BNode node(&entry);
+		BNodeInfo nodeInfo(&node);
+
+		char mimeType[B_MIME_TYPE_LENGTH];
+
+		if (nodeInfo.GetType(mimeType) == B_OK) {
+			info << "Type: " << mimeType << "\n";
+		}
+
+        info << "Full path: " << path.Path() << "\n";
+
+        // File sizes
+		char diskBuf[32], memBuf[32];
+		FormatSize(diskBuf, GetFileSize(&fCurrentRef));
+		FormatSize(memBuf, bitmap->BitsLength());
+		info << "Disk size: " << diskBuf << "\n";
+		info << "Current memory size: " << memBuf << "\n";
+
+        time_t modTime;
+        if (node.GetModificationTime(&modTime) == B_OK) {
+            info << "File date/time: " << ctime(&modTime) << "\n";
+        }
+    }
+
+    // --- Bitmap info ---
+    int32 width  = bitmap->Bounds().IntegerWidth() + 1;
+    int32 height = bitmap->Bounds().IntegerHeight() + 1;
+    info << "Original size: " << FormatDimensions(width, height) << "\n";
+
+    // Current zoom size
+    float zoom = fImageView->EffectiveZoom();
+    int32 currentW = width * zoom;
+    int32 currentH = height * zoom;
+    info << "Current size: " << FormatDimensions(currentW, currentH) << "\n";
+
+	// Color space
+    color_space cs = bitmap->ColorSpace();
+    info << "Color space: " << cs << "\n";
+
+	// Load time
+	info << "Load time: " << fLoadTime / 1000.0 << " ms\n";
+
+    // Folder index
+    if (!fFileList.empty() && fCurrentIndex >= 0) {
+        info << "Index: " << (fCurrentIndex + 1)
+             << " / " << fFileList.size() << "\n";
+    }
+
+    BAlert* alert = new BAlert("Image properties", info.String(), "OK");
+	alert->SetShortcut(0, B_ESCAPE);
+	alert->Go();
 }

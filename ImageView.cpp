@@ -201,6 +201,14 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
 			case 'V':
 				FlipVertical();
 				return;
+
+			case 'i':
+			case 'I':
+			{
+			if (Window())
+				Window()->PostMessage(M_SHOW_INFO);
+			return;
+			}
         }
     }
 

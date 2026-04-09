@@ -5,9 +5,9 @@
 
 #include "StatusView.h"
 #include "ImageView.h"
+#include "Utils.h"
 
 #include <Bitmap.h>
-#include <stdio.h>
 #include <InterfaceDefs.h>
 #include <File.h>
 #include <String.h>
@@ -62,45 +62,9 @@ void StatusView::Update(const entry_ref* ref,
         text << " Fit";
 
     char diskBuf[32], memBuf[32];
-    _FormatSize(diskBuf, _GetFileSize(ref));
-    _FormatSize(memBuf, _GetBitmapSize(bmp));
+    FormatSize(diskBuf, GetFileSize(ref));
+    FormatSize(memBuf, GetBitmapSize(bmp));
     text << "  |  " << diskBuf << "/" << memBuf;
 
     SetText(text);
-}
-
-
-static off_t _GetFileSize(const entry_ref* ref)
-{
-    if (!ref)
-        return 0;
-
-    BFile file(ref, B_READ_ONLY);
-    off_t size = 0;
-    file.GetSize(&size);
-    return size;
-}
-
-
-static size_t _GetBitmapSize(BBitmap* bmp)
-{
-    if (!bmp)
-        return 0;
-
-    return bmp->BitsLength();
-}
-
-
-static void _FormatSize(char* out, size_t size)
-{
-    const char* units[] = {"B", "KB", "MB", "GB"};
-    int i = 0;
-    double s = (double)size;
-
-    while (s > 1024 && i < 3) {
-        s /= 1024;
-        i++;
-    }
-
-    snprintf(out, 32, "%.1f%s", s, units[i]);
 }
