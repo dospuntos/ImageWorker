@@ -34,7 +34,8 @@ SRCS =  App.cpp \
 		ImageView.cpp \
 		StatusView.cpp \
 		Constants.cpp \
-		Toolbar.cpp
+		Toolbar.cpp \
+		SettingsWindow.cpp
 
 #	Specify the resource definition files to use. Full or relative paths can be
 #	used.

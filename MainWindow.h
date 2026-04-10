@@ -21,8 +21,9 @@ class MainWindow : public BWindow
 public:
 							MainWindow();
 	virtual					~MainWindow();
-
+	bool					QuitRequested(void);
 	virtual void			MessageReceived(BMessage* msg);
+	void 					MenusBeginning();
 	void					_ToggleScaleMode();
 
 private:
@@ -55,6 +56,19 @@ private:
 			void			NextImage();
 			void			PrevImage();
 			void			DeleteCurrentImage();
+
+			// settings
+			BWindow*		fSettingsWindow;
+			bool			fCloseOnEscape;
+			bool			_AlwaysOnTop() {return Feel() == B_FLOATING_ALL_WINDOW_FEEL;};
+
+			// menu items
+			BMenuItem*		fMRotate90CW;
+			BMenuItem*		fMRotate90CCW;
+			BMenuItem* 		fMFlipVertical;
+			BMenuItem*		fMFlipHorizontal;
+			BMenuItem*		fMInformation;
+			BMenuItem* 		fMAlwaysOnTop;
 };
 
 #endif

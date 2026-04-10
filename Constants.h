@@ -33,6 +33,12 @@ enum {
 	M_PASTE			= 'past',
 	M_COPY			= 'copy',
 
+	M_APPLY_SETTINGS = 'aply',
+	M_CLOSE_SETTINGS = 'clst',
+
+	M_MINIMIZE_WINDOW = 'mnmz',
+	M_ALWAYS_ON_TOP = 'atop'
+
 };
 
 

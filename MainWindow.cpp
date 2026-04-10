@@ -6,6 +6,7 @@
 
 #include "MainWindow.h"
 #include "Constants.h"
+#include "SettingsWindow.h"
 #include "Utils.h"
 
 #include <Alert.h>
@@ -50,6 +51,8 @@ MainWindow::MainWindow()
 	fImageView = new ImageView();
 	fStatusView = new StatusView();
 	fToolBar = CreateToolbar(this);
+	fSettingsWindow = nullptr;
+	fHasImage = false;
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
 		.Add(menuBar)
@@ -72,6 +75,7 @@ MainWindow::MainWindow()
 	BMessage settings;
 	_LoadSettings(settings);
 
+	// Restore settings
 	BRect frame;
 	if (settings.FindRect("main_window_rect", &frame) == B_OK) {
 		MoveTo(frame.LeftTop());
@@ -79,6 +83,14 @@ MainWindow::MainWindow()
 	}
 
 	settings.FindRef("lastSaveDir", &fLastSaveDir);
+	if (settings.FindBool("closeOnEscape", &fCloseOnEscape) != B_OK)
+		fCloseOnEscape = true; // default
+
+	bool onTop;
+	if (settings.FindBool("alwaysOnTop", &onTop) == B_OK) {
+		SetFeel(onTop ? B_FLOATING_ALL_WINDOW_FEEL : B_NORMAL_WINDOW_FEEL);
+		fMAlwaysOnTop->SetMarked(onTop);
+	}
 
 	MoveOnScreen();
 	fStatusView->SetAlignment(B_ALIGN_LEFT);
@@ -286,27 +298,61 @@ MainWindow::MessageReceived(BMessage* message)
 
 			// Reset state (new "image session")
 			PostMessage(M_CLEAR_IMAGE);
-
-			break;
-		}
+		} break;
 
 		case M_CLEAR_IMAGE:
 		{
-			fImageView->Clear();
+			if (fHasImage) {
+				fImageView->Clear();
 
-			fCurrentRef = entry_ref();
-			fFileList.clear();
-			fCurrentIndex = -1;
+				fCurrentRef = entry_ref();
+				fFileList.clear();
+				fCurrentIndex = -1;
 
-			_UpdateStatus();
-			break;
-		}
+				_UpdateStatus();
+			}
+		} break;
 
 		case M_SHOW_INFO:
 		{
 			_ShowImageInfo();
 			break;
 		}
+
+		case M_SHOW_SETTINGS:
+
+		{
+			if (!fSettingsWindow) {
+				fSettingsWindow
+					= new SettingsWindow(fCloseOnEscape);
+				fSettingsWindow->CenterIn(Frame());
+				fSettingsWindow->Show();
+			} else {
+				if (fSettingsWindow->IsHidden())
+					fSettingsWindow->Show();
+				fSettingsWindow->Activate();
+			}
+		} break;
+
+		case M_APPLY_SETTINGS:
+		{
+			bool value;
+			if (message->FindBool("value", &value) == B_OK) {
+				fCloseOnEscape = value;
+				_SaveSettings();
+			}
+		} break;
+
+		case M_MINIMIZE_WINDOW:
+			Minimize(true);
+			break;
+
+		case M_ALWAYS_ON_TOP:
+		{
+			bool onTop = _AlwaysOnTop();
+			SetFeel(onTop ? B_NORMAL_WINDOW_FEEL : B_FLOATING_ALL_WINDOW_FEEL);
+			fMAlwaysOnTop->SetMarked(!onTop);
+		} break;
 
 		default:
 		{
@@ -326,9 +372,6 @@ MainWindow::_BuildMenu()
 
 	// menu 'File'
 	menu = new BMenu(B_TRANSLATE("File"));
-
-	item = new BMenuItem(B_TRANSLATE("New"), new BMessage(M_NEW_FILE), 'N');
-	menu->AddItem(item);
 
 	BMenuItem* openItem
 		= new BMenuItem(BRecentFilesList::NewFileListMenu(B_TRANSLATE("Open" B_UTF8_ELLIPSIS), NULL,
@@ -359,17 +402,49 @@ MainWindow::_BuildMenu()
 
 	menu->AddSeparatorItem();
 
-	item = new BMenuItem(B_TRANSLATE("Rotate 90"), new BMessage(M_ROTATE_90_CW), 'R');
+
+	menuBar->AddItem(menu);
+
+	// menu 'Image'
+	menu = new BMenu(B_TRANSLATE("Image"));
+
+	fMInformation = new BMenuItem(B_TRANSLATE("Information"), new BMessage(M_SHOW_INFO), 'I');
+	menu->AddItem(fMInformation);
+
+	menu->AddSeparatorItem();
+
+	item = new BMenuItem(B_TRANSLATE("Create new (empty) image..."), new BMessage(M_NEW_FILE), 'N');
 	menu->AddItem(item);
 
-	item = new BMenuItem(B_TRANSLATE("Rotate -90"), new BMessage(M_ROTATE_90_CCW), 'L');
+	menu->AddSeparatorItem();
+
+	fMRotate90CCW = new BMenuItem(B_TRANSLATE("Rotate left (counter-clockwise)"), new BMessage(M_ROTATE_90_CCW), 'L');
+	menu->AddItem(fMRotate90CCW);
+
+	fMRotate90CW = new BMenuItem(B_TRANSLATE("Rotate right (clockwise)"), new BMessage(M_ROTATE_90_CW), 'R');
+	menu->AddItem(fMRotate90CW);
+
+	fMFlipVertical = new BMenuItem(B_TRANSLATE("Vertical flip"), new BMessage(M_FLIP_VERTICAL));
+	menu->AddItem(fMFlipVertical);
+
+	fMFlipHorizontal = new BMenuItem(B_TRANSLATE("Horizontal flip"), new BMessage(M_FLIP_HORIZONTAL));
+	menu->AddItem(fMFlipHorizontal);
+
+	menuBar->AddItem(menu);
+
+	// menu 'Options'
+	menu = new BMenu(B_TRANSLATE("Options"));
+
+	item = new BMenuItem(B_TRANSLATE("Properties/Settings..."), new BMessage(M_SHOW_SETTINGS), 'P');
 	menu->AddItem(item);
 
-	item = new BMenuItem(B_TRANSLATE("Flip vertical"), new BMessage(M_FLIP_VERTICAL));
+	menu->AddSeparatorItem();
+
+	item = new BMenuItem(B_TRANSLATE("Minimize"), new BMessage(M_MINIMIZE_WINDOW), 'M');
 	menu->AddItem(item);
 
-	item = new BMenuItem(B_TRANSLATE("Flip horizontal"), new BMessage(M_FLIP_HORIZONTAL));
-	menu->AddItem(item);
+	fMAlwaysOnTop = new BMenuItem(B_TRANSLATE("Always on top"), new BMessage(M_ALWAYS_ON_TOP));
+	menu->AddItem(fMAlwaysOnTop);
 
 	menuBar->AddItem(menu);
 
@@ -428,14 +503,27 @@ MainWindow::_SaveSettings()
 		return status;
 
 	BMessage settings;
-	status = settings.AddRect("main_window_rect", Frame());
+	settings.AddRect("main_window_rect", Frame());
 	if (fLastSaveDir.device >= 0)
 		status = settings.AddRef("lastSaveDir", &fLastSaveDir);
+	settings.AddBool("closeOnEscape", fCloseOnEscape);
+	settings.AddBool("alwaysOnTop",_AlwaysOnTop());
 
 	if (status == B_OK)
 		status = settings.Flatten(&file);
 
 	return status;
+}
+
+
+void
+MainWindow::MenusBeginning()
+{
+	fMInformation->SetEnabled(fHasImage);
+	fMRotate90CW->SetEnabled(fHasImage);
+	fMRotate90CCW->SetEnabled(fHasImage);
+	fMFlipVertical->SetEnabled(fHasImage);
+	fMFlipHorizontal->SetEnabled(fHasImage);
 }
 
 
@@ -449,11 +537,13 @@ MainWindow::_LoadImage(const entry_ref& ref)
 		statusMsg.SetToFormat("Failed to load image: %s", ref.name);
 		fStatusView->SetStatus(statusMsg);
 		fImageView->Clear();
+		fHasImage = false;
 		return;
 	}
 
 	fCurrentRef = ref;
 	fImageView->SetBitmap(bitmap);
+	fHasImage = true;
 
 	BEntry entry(&ref);
 	BEntry parent;
@@ -697,4 +787,15 @@ void MainWindow::_ShowImageInfo()
     BAlert* alert = new BAlert("Image properties", info.String(), "OK");
 	alert->SetShortcut(0, B_ESCAPE);
 	alert->Go();
+}
+
+
+bool MainWindow::QuitRequested(void)
+{
+	if (fSettingsWindow && fSettingsWindow->LockLooper()) {
+		fSettingsWindow->Quit();
+		fSettingsWindow = nullptr;
+	}
+	be_app->PostMessage(B_QUIT_REQUESTED);
+	return true;
 }

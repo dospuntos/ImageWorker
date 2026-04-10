@@ -209,6 +209,13 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
 				Window()->PostMessage(M_SHOW_INFO);
 			return;
 			}
+			case 'p':
+			case 'P':
+			{
+			if (Window())
+				Window()->PostMessage(M_SHOW_SETTINGS);
+			return;
+			}
         }
     }
 
@@ -218,14 +225,16 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
 
 void ImageView::Clear()
 {
-    delete fBitmap;
-    fBitmap = nullptr;
+	if (fBitmap != nullptr) {
+		delete fBitmap;
+		fBitmap = nullptr;
 
-    fOffset = BPoint(0, 0);
-    fZoom = 1.0f;
-    fScaleMode = SCALE_FIT;
+		fOffset = BPoint(0, 0);
+		fZoom = 1.0f;
+		fScaleMode = SCALE_FIT;
 
-    Invalidate();
+		Invalidate();
+	}
 }
 
 
