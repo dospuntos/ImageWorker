@@ -371,6 +371,90 @@ void ImageView::FlipVertical()
 }
 
 
+void ImageView::ConvertToGrayscale()
+{
+    if (!fBitmap)
+        return;
+
+    if (fBitmap->ColorSpace() != B_RGBA32 &&
+        fBitmap->ColorSpace() != B_RGB32)
+        return;
+
+    int32 width  = fBitmap->Bounds().IntegerWidth() + 1;
+    int32 height = fBitmap->Bounds().IntegerHeight() + 1;
+
+    uint8* bits = (uint8*)fBitmap->Bits();
+    int32 bpr = fBitmap->BytesPerRow();
+
+    for (int32 y = 0; y < height; ++y) {
+        uint8* row = bits + y * bpr;
+
+        for (int32 x = 0; x < width; ++x) {
+            uint8* pixel = row + x * 4;
+
+            uint8 b = pixel[0];
+            uint8 g = pixel[1];
+            uint8 r = pixel[2];
+            // pixel[3] = alpha (leave unchanged)
+
+            // Standard luminance formula
+            uint8 gray = (uint8)(0.299f * r + 0.587f * g + 0.114f * b);
+
+            pixel[0] = gray; // B
+            pixel[1] = gray; // G
+            pixel[2] = gray; // R
+        }
+    }
+
+    Invalidate();
+
+    if (Window())
+        Window()->PostMessage('stat');
+}
+
+
+void ImageView::SwapColors(const int order[4])
+{
+    if (!fBitmap)
+        return;
+
+    if (fBitmap->ColorSpace() != B_RGBA32 &&
+        fBitmap->ColorSpace() != B_RGB32)
+        return;
+
+    int32 width  = fBitmap->Bounds().IntegerWidth() + 1;
+    int32 height = fBitmap->Bounds().IntegerHeight() + 1;
+
+    uint8* bits = (uint8*)fBitmap->Bits();
+    int32 bpr = fBitmap->BytesPerRow();
+
+    for (int32 y = 0; y < height; ++y) {
+        uint8* row = bits + y * bpr;
+
+        for (int32 x = 0; x < width; ++x) {
+            uint8* pixel = row + x * 4;
+
+            uint8 original[4];
+            original[0] = pixel[0]; // B
+            original[1] = pixel[1]; // G
+            original[2] = pixel[2]; // R
+            original[3] = pixel[3]; // A
+
+            pixel[0] = original[order[0]];
+            pixel[1] = original[order[1]];
+            pixel[2] = original[order[2]];
+            pixel[3] = original[order[3]]; // usually keep alpha
+        }
+    }
+
+    Invalidate();
+
+    if (Window())
+        Window()->PostMessage('stat');
+}
+
+
+
 float ImageView::Zoom() const
 {
     return fZoom;

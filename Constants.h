@@ -25,6 +25,12 @@ enum {
     M_ROTATE_90_CCW = 'rccw',
 	M_FLIP_VERTICAL = 'flpv',
 	M_FLIP_HORIZONTAL = 'flph',
+	M_CONVERT_TO_GRAYSCALE = 'gray',
+	M_SWAP_COLOR_RBG = 'srbg',
+	M_SWAP_COLOR_GRB = 'sgrb',
+	M_SWAP_COLOR_GBR = 'sgbr',
+	M_SWAP_COLOR_BRG = 'sbrg',
+	M_SWAP_COLOR_BGR = 'sbgr',
 	M_CLEAR_IMAGE   = 'clri',
 	M_SHOW_INFO		= 'info',
 

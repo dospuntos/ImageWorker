@@ -257,6 +257,42 @@ MainWindow::MessageReceived(BMessage* message)
 			fImageView->FlipHorizontal();
 		} break;
 
+		case M_CONVERT_TO_GRAYSCALE:
+		{
+			fImageView->ConvertToGrayscale();
+		} break;
+
+		case M_SWAP_COLOR_RBG:
+		{
+			int order[4] = {0, 2, 1, 3}; // R B G
+			fImageView->SwapColors(order);
+		} break;
+
+		case M_SWAP_COLOR_GRB:
+		{
+			int order[4] = {1, 0, 2, 3}; // G R B
+			fImageView->SwapColors(order);
+		} break;
+
+		case M_SWAP_COLOR_GBR:
+		{
+			int order[4] = {2, 0, 1, 3}; // G B R
+			fImageView->SwapColors(order);
+		} break;
+
+		case M_SWAP_COLOR_BRG:
+		{
+			int order[4] = {1, 2, 0, 3}; // B R G
+			fImageView->SwapColors(order);
+		} break;
+
+		case M_SWAP_COLOR_BGR:
+		{
+			int order[4] = {2, 1, 0, 3}; // B G R (swap R and B)
+			fImageView->SwapColors(order);
+		} break;
+
+
 		case 'stat':
 		{
 			_UpdateStatus();
@@ -368,6 +404,7 @@ MainWindow::_BuildMenu()
 {
 	BMenuBar* menuBar = new BMenuBar("menubar");
 	BMenu* menu;
+	BMenu* submenu;
 	BMenuItem* item;
 
 	// menu 'File'
@@ -429,6 +466,32 @@ MainWindow::_BuildMenu()
 
 	fMFlipHorizontal = new BMenuItem(B_TRANSLATE("Horizontal flip"), new BMessage(M_FLIP_HORIZONTAL));
 	menu->AddItem(fMFlipHorizontal);
+
+	menu->AddSeparatorItem();
+
+	fMConvertToGrayscale = new BMenuItem(B_TRANSLATE("Convert to grayscale"), new BMessage(M_CONVERT_TO_GRAYSCALE), 'G');
+	menu->AddItem(fMConvertToGrayscale);
+
+	menu->AddSeparatorItem();
+
+	fMSwapColors = new BMenu(B_TRANSLATE("Swap colors"));
+
+	item = new BMenuItem("RGB -> RBG", new BMessage(M_SWAP_COLOR_RBG));
+	fMSwapColors->AddItem(item);
+
+	item = new BMenuItem("RGB -> GRB", new BMessage(M_SWAP_COLOR_GRB));
+	fMSwapColors->AddItem(item);
+
+	item = new BMenuItem("RGB -> GBR", new BMessage(M_SWAP_COLOR_GBR));
+	fMSwapColors->AddItem(item);
+
+	item = new BMenuItem("RGB -> BRG", new BMessage(M_SWAP_COLOR_BRG));
+	fMSwapColors->AddItem(item);
+
+	item = new BMenuItem("RGB -> BGR", new BMessage(M_SWAP_COLOR_BGR));
+	fMSwapColors->AddItem(item);
+
+	menu->AddItem(fMSwapColors);
 
 	menuBar->AddItem(menu);
 
@@ -524,6 +587,8 @@ MainWindow::MenusBeginning()
 	fMRotate90CCW->SetEnabled(fHasImage);
 	fMFlipVertical->SetEnabled(fHasImage);
 	fMFlipHorizontal->SetEnabled(fHasImage);
+	fMConvertToGrayscale->SetEnabled(fHasImage);
+	fMSwapColors->SetEnabled(fHasImage);
 }
 
 

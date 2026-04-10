@@ -67,6 +67,8 @@ private:
 			BMenuItem*		fMRotate90CCW;
 			BMenuItem* 		fMFlipVertical;
 			BMenuItem*		fMFlipHorizontal;
+			BMenuItem*		fMConvertToGrayscale;
+			BMenu* 			fMSwapColors;
 			BMenuItem*		fMInformation;
 			BMenuItem* 		fMAlwaysOnTop;
 };

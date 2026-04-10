@@ -44,6 +44,8 @@ public:
 	void Rotate90CCW();
 	void FlipHorizontal();
 	void FlipVertical();
+	void ConvertToGrayscale();
+	void SwapColors(const int order[4]);
 
 	float Zoom() const;
 	void SetZoom(float zoom);
