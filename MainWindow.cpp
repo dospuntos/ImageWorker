@@ -8,6 +8,7 @@
 #include "Constants.h"
 #include "SettingsWindow.h"
 #include "Utils.h"
+#include "IconMenuItem.h"
 
 #include <Alert.h>
 #include <Application.h>
@@ -407,6 +408,25 @@ MainWindow::_BuildMenu()
 	BMenu* submenu;
 	BMenuItem* item;
 
+	// App menu
+	menu = new BMenu("");
+	item = new BMenuItem(B_TRANSLATE("About" B_UTF8_ELLIPSIS), new BMessage(B_ABOUT_REQUESTED));
+	item->SetTarget(be_app);
+	menu->AddItem(item);
+	menu->AddItem(
+		new BMenuItem(B_TRANSLATE("Help" B_UTF8_ELLIPSIS), new BMessage(M_SHOW_HELP), 'H'));
+	menu->AddItem(
+		new BMenuItem(B_TRANSLATE("Report a bug" B_UTF8_ELLIPSIS), new BMessage(M_REPORT_A_BUG)));
+	menu->AddSeparatorItem();
+	menu->AddItem(new BMenuItem(B_TRANSLATE("Settings" B_UTF8_ELLIPSIS),
+		new BMessage(M_SHOW_SETTINGS), ',', B_COMMAND_KEY));
+	menu->AddSeparatorItem();
+	menu->AddItem(new BMenuItem(B_TRANSLATE("Quit"), new BMessage(B_QUIT_REQUESTED), 'Q'));
+
+	IconMenuItem* iconMenu = new IconMenuItem(menu, NULL, kApplicationSignature, B_MINI_ICON);
+	menuBar->AddItem(iconMenu);
+
+
 	// menu 'File'
 	menu = new BMenu(B_TRANSLATE("File"));
 
@@ -425,9 +445,6 @@ MainWindow::_BuildMenu()
 
 	item = new BMenuItem(B_TRANSLATE("About" B_UTF8_ELLIPSIS), new BMessage(B_ABOUT_REQUESTED));
 	item->SetTarget(be_app);
-	menu->AddItem(item);
-
-	item = new BMenuItem(B_TRANSLATE("Quit"), new BMessage(B_QUIT_REQUESTED), 'Q');
 	menu->AddItem(item);
 
 	menuBar->AddItem(menu);
