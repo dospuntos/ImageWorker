@@ -31,6 +31,10 @@ enum {
 	M_SWAP_COLOR_GBR = 'sgbr',
 	M_SWAP_COLOR_BRG = 'sbrg',
 	M_SWAP_COLOR_BGR = 'sbgr',
+	M_ISOLATE_CHANNEL_RED = 'isor',
+	M_ISOLATE_CHANNEL_GREEN = 'isog',
+	M_ISOLATE_CHANNEL_BLUE = 'isob',
+	M_INVERT_COLORS  = 'invt',
 	M_CLEAR_IMAGE   = 'clri',
 	M_SHOW_INFO		= 'info',
 

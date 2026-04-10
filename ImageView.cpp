@@ -454,6 +454,94 @@ void ImageView::SwapColors(const int order[4])
 }
 
 
+void ImageView::InvertColors()
+{
+    if (!fBitmap)
+        return;
+
+    if (fBitmap->ColorSpace() != B_RGBA32 &&
+        fBitmap->ColorSpace() != B_RGB32)
+        return;
+
+    int32 width  = fBitmap->Bounds().IntegerWidth() + 1;
+    int32 height = fBitmap->Bounds().IntegerHeight() + 1;
+
+    uint8* bits = (uint8*)fBitmap->Bits();
+    int32 bpr = fBitmap->BytesPerRow();
+
+    for (int32 y = 0; y < height; ++y) {
+        uint8* row = bits + y * bpr;
+
+        for (int32 x = 0; x < width; ++x) {
+            uint8* pixel = row + x * 4;
+
+            // pixel layout: B, G, R, A
+            pixel[0] = 255 - pixel[0]; // B
+            pixel[1] = 255 - pixel[1]; // G
+            pixel[2] = 255 - pixel[2]; // R
+            // pixel[3] = alpha (unchanged)
+        }
+    }
+
+    Invalidate();
+
+    if (Window())
+        Window()->PostMessage('stat');
+}
+
+
+void ImageView::IsolateChannel(ColorChannel channel, bool replicateToAll)
+{
+    if (!fBitmap)
+        return;
+
+    if (fBitmap->ColorSpace() != B_RGBA32 &&
+        fBitmap->ColorSpace() != B_RGB32)
+        return;
+
+    int32 width  = fBitmap->Bounds().IntegerWidth() + 1;
+    int32 height = fBitmap->Bounds().IntegerHeight() + 1;
+
+    uint8* bits = (uint8*)fBitmap->Bits();
+    int32 bpr = fBitmap->BytesPerRow();
+
+    // internal format: [0]=B, [1]=G, [2]=R, [3]=A
+    int index = 0;
+    switch (channel) {
+        case CHANNEL_BLUE:  index = 0; break;
+        case CHANNEL_GREEN: index = 1; break;
+        case CHANNEL_RED:   index = 2; break;
+    }
+
+    for (int32 y = 0; y < height; ++y) {
+        uint8* row = bits + y * bpr;
+
+        for (int32 x = 0; x < width; ++x) {
+            uint8* pixel = row + x * 4;
+
+            uint8 value = pixel[index];
+
+            if (replicateToAll) {
+                // grayscale-like: show intensity of the channel
+                pixel[0] = value; // B
+                pixel[1] = value; // G
+                pixel[2] = value; // R
+            } else {
+                // keep only that channel
+                pixel[0] = (index == 0) ? value : 0;
+                pixel[1] = (index == 1) ? value : 0;
+                pixel[2] = (index == 2) ? value : 0;
+            }
+        }
+    }
+
+    Invalidate();
+
+    if (Window())
+        Window()->PostMessage('stat');
+}
+
+
 
 float ImageView::Zoom() const
 {

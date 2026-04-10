@@ -13,6 +13,12 @@ enum ScaleMode {
 	SCALE_ORIGINAL
 };
 
+enum ColorChannel {
+    CHANNEL_RED,
+    CHANNEL_GREEN,
+    CHANNEL_BLUE
+};
+
 class ImageView : public BView {
 public:
     ImageView();
@@ -46,6 +52,8 @@ public:
 	void FlipVertical();
 	void ConvertToGrayscale();
 	void SwapColors(const int order[4]);
+	void InvertColors();
+	void IsolateChannel(ColorChannel channel, bool replicateToAll);
 
 	float Zoom() const;
 	void SetZoom(float zoom);

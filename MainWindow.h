@@ -69,8 +69,10 @@ private:
 			BMenuItem*		fMFlipHorizontal;
 			BMenuItem*		fMConvertToGrayscale;
 			BMenu* 			fMSwapColors;
+			BMenuItem*		fMInvertColors;
 			BMenuItem*		fMInformation;
 			BMenuItem* 		fMAlwaysOnTop;
+			BMenu*			fMShowChannel;
 };
 
 #endif

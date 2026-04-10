@@ -293,6 +293,19 @@ MainWindow::MessageReceived(BMessage* message)
 			fImageView->SwapColors(order);
 		} break;
 
+		case M_ISOLATE_CHANNEL_RED:
+			fImageView->IsolateChannel(CHANNEL_RED, false);
+			break;
+		case M_ISOLATE_CHANNEL_GREEN:
+			fImageView->IsolateChannel(CHANNEL_GREEN, false);
+			break;
+		case M_ISOLATE_CHANNEL_BLUE:
+			fImageView->IsolateChannel(CHANNEL_BLUE, false);
+			break;
+
+		case M_INVERT_COLORS:
+			fImageView->InvertColors();
+			break;
 
 		case 'stat':
 		{
@@ -489,25 +502,32 @@ MainWindow::_BuildMenu()
 	fMConvertToGrayscale = new BMenuItem(B_TRANSLATE("Convert to grayscale"), new BMessage(M_CONVERT_TO_GRAYSCALE), 'G');
 	menu->AddItem(fMConvertToGrayscale);
 
+	// submenu 'Show channel'
+	fMShowChannel = new BMenu(B_TRANSLATE("Show channel"));
+	item = new BMenuItem("Isolate red", new BMessage(M_ISOLATE_CHANNEL_RED));
+	fMShowChannel->AddItem(item);
+	item = new BMenuItem("Isolate green", new BMessage(M_ISOLATE_CHANNEL_GREEN));
+	fMShowChannel->AddItem(item);
+	item = new BMenuItem("Isolate blue", new BMessage(M_ISOLATE_CHANNEL_BLUE));
+	fMShowChannel->AddItem(item);
+	menu->AddItem(fMShowChannel);
+
+	fMInvertColors = new BMenuItem(B_TRANSLATE("Negative (invert colors)"), new BMessage(M_INVERT_COLORS));
+	menu->AddItem(fMInvertColors);
+
 	menu->AddSeparatorItem();
-
+	// submenu 'Swap colors'
 	fMSwapColors = new BMenu(B_TRANSLATE("Swap colors"));
-
 	item = new BMenuItem("RGB -> RBG", new BMessage(M_SWAP_COLOR_RBG));
 	fMSwapColors->AddItem(item);
-
 	item = new BMenuItem("RGB -> GRB", new BMessage(M_SWAP_COLOR_GRB));
 	fMSwapColors->AddItem(item);
-
 	item = new BMenuItem("RGB -> GBR", new BMessage(M_SWAP_COLOR_GBR));
 	fMSwapColors->AddItem(item);
-
 	item = new BMenuItem("RGB -> BRG", new BMessage(M_SWAP_COLOR_BRG));
 	fMSwapColors->AddItem(item);
-
 	item = new BMenuItem("RGB -> BGR", new BMessage(M_SWAP_COLOR_BGR));
 	fMSwapColors->AddItem(item);
-
 	menu->AddItem(fMSwapColors);
 
 	menuBar->AddItem(menu);
@@ -606,6 +626,8 @@ MainWindow::MenusBeginning()
 	fMFlipHorizontal->SetEnabled(fHasImage);
 	fMConvertToGrayscale->SetEnabled(fHasImage);
 	fMSwapColors->SetEnabled(fHasImage);
+	fMInvertColors->SetEnabled(fHasImage);
+	fMShowChannel->SetEnabled(fHasImage);
 }
 
 
