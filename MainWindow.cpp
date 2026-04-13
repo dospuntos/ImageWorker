@@ -94,6 +94,7 @@ MainWindow::MainWindow()
 	}
 
 	MoveOnScreen();
+	_UpdateStatus();
 	fStatusView->SetAlignment(B_ALIGN_LEFT);
 	fStatusView->SetExplicitMinSize(BSize(B_SIZE_UNSET, 20));
 	fImageView->MakeFocus(true);
@@ -358,6 +359,7 @@ MainWindow::MessageReceived(BMessage* message)
 				fCurrentRef = entry_ref();
 				fFileList.clear();
 				fCurrentIndex = -1;
+				fHasImage = false;
 
 				_UpdateStatus();
 			}
@@ -802,13 +804,22 @@ void MainWindow::DeleteCurrentImage()
 
 void MainWindow::_UpdateStatus()
 {
-	BString name = (fCurrentRef.name) ? fCurrentRef.name : "(unnamed)";
+	// Update title bar
+	BString name = (fCurrentRef.name) ? fCurrentRef.name : (fHasImage ? "(unnamed)" : "(No file)");
 	name << " - " << kApplicationName;
 	SetTitle(name);
+	// Update status bar
     fStatusView->Update(&fCurrentRef,
                         fImageView,
                         fCurrentIndex,
                         fFileList.size());
+	// Update toolbar
+	fToolBar->SetActionEnabled(M_PREV_IMAGE, fHasImage);
+	fToolBar->SetActionEnabled(M_NEXT_IMAGE, fHasImage);
+	fToolBar->SetActionEnabled(M_DELETE_IMAGE, fHasImage);
+	fToolBar->SetActionEnabled(M_SHOW_INFO, fHasImage);
+	fToolBar->SetActionEnabled(B_UNDO, fHasImage);
+	fToolBar->SetActionEnabled(B_REDO, fHasImage);
 }
 
 
