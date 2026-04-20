@@ -49,7 +49,8 @@ MainWindow::MainWindow()
 		B_ASYNCHRONOUS_CONTROLS | B_QUIT_ON_WINDOW_CLOSE),
 		fHasImage(false),
 		fUndoSteps(5),
-		fSettingsWindow(nullptr)
+		fSettingsWindow(nullptr),
+		fInfoWindow(nullptr)
 {
 	BMenuBar* menuBar = _BuildMenu();
 	fImageView = new ImageView();
@@ -708,6 +709,9 @@ MainWindow::_LoadImage(const entry_ref& ref)
 
 	bigtime_t end = system_time();
 	fLoadTime = end - start;
+	if (fInfoWindow && !fInfoWindow->IsHidden())
+		_ShowImageInfo();
+
 	_UpdateStatus();
 }
 
@@ -876,83 +880,131 @@ void MainWindow::_UpdateStatus()
 
 void MainWindow::_ShowImageInfo()
 {
+    if (!fInfoWindow)
+        fInfoWindow = new InfoWindow();
+
+    BMessage msg(MSG_SET_INFO);
+
+    auto AddSection = [&](const char* title) {
+        BMessage item;
+        item.AddString("type", "section");
+        item.AddString("title", title);
+        msg.AddMessage("item", &item);
+    };
+
+    auto AddRow = [&](const char* label, const BString& value) {
+        BMessage item;
+        item.AddString("type", "row");
+        item.AddString("label", label);
+        item.AddString("value", value);
+        msg.AddMessage("item", &item);
+    };
+
     BBitmap* bitmap = fImageView->Bitmap();
+
     if (!bitmap) {
-        BAlert* alert = new BAlert("Info", "No image loaded.", "OK", NULL, NULL, B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_WARNING_ALERT);
-		alert->SetShortcut(0, B_ESCAPE);
-		alert->Go();
-        return;
-    }
+        AddRow("Status:", "No image loaded");
+    } else {
 
-    BString info("IMAGE PROPERTIES:\n\n");
+        // -------------------------
+        // File
+        // -------------------------
+        if (fCurrentRef.name) {
+            AddSection("File");
 
-    // --- File info ---
-    if (fCurrentRef.name) {
-        info << "File name: " << fCurrentRef.name << "\n";
+            AddRow("File name:", fCurrentRef.name);
 
-        BEntry entry(&fCurrentRef);
-        BPath path;
-        entry.GetPath(&path);
+            BEntry entry(&fCurrentRef);
+            BPath path;
+            entry.GetPath(&path);
 
-		// Folder
-        BEntry parent;
-        if (entry.GetParent(&parent) == B_OK) {
-            BPath parentPath;
-            parent.GetPath(&parentPath);
-            info << "Folder: " << parentPath.Path() << "\n";
+            BEntry parent;
+            if (entry.GetParent(&parent) == B_OK) {
+                BPath parentPath;
+                parent.GetPath(&parentPath);
+                AddRow("Folder:", parentPath.Path());
+            }
+
+            AddRow("Full path:", path.Path());
+
+            BNode node(&entry);
+            BNodeInfo nodeInfo(&node);
+
+            char mimeType[B_MIME_TYPE_LENGTH];
+            if (nodeInfo.GetType(mimeType) == B_OK) {
+                BMimeType mime(mimeType);
+
+				char shortDesc[B_MIME_TYPE_LENGTH];
+				char longDesc[256];
+
+				if (mime.GetShortDescription(shortDesc) == B_OK) {
+					if (mime.GetLongDescription(longDesc) == B_OK) {
+						BString typeStr;
+						typeStr << longDesc << " (" << mimeType << ")";
+						AddRow("Type:", typeStr);
+					} else {
+						BString typeStr;
+						typeStr << shortDesc << " (" << mimeType << ")";
+						AddRow("Type:", typeStr);
+					}
+				} else {
+					AddRow("Type:", mimeType);
+				}
+			}
+
+            char diskBuf[32], memBuf[32];
+            FormatSize(diskBuf, GetFileSize(&fCurrentRef));
+            FormatSize(memBuf, bitmap->BitsLength());
+
+            AddRow("Disk size:", diskBuf);
+            AddRow("Memory size:", memBuf);
+
+            time_t modTime;
+            if (node.GetModificationTime(&modTime) == B_OK) {
+                BString t(ctime(&modTime));
+                t.Trim();
+                AddRow("File date/time:", t);
+            }
         }
 
-		BNode node(&entry);
-		BNodeInfo nodeInfo(&node);
+        // -------------------------
+        // Image
+        // -------------------------
+        AddSection("Image");
 
-		char mimeType[B_MIME_TYPE_LENGTH];
+        int32 width  = bitmap->Bounds().IntegerWidth() + 1;
+        int32 height = bitmap->Bounds().IntegerHeight() + 1;
 
-		if (nodeInfo.GetType(mimeType) == B_OK) {
-			info << "Type: " << mimeType << "\n";
-		}
+        AddRow("Original size:", FormatDimensions(width, height));
 
-        info << "Full path: " << path.Path() << "\n";
+        float zoom = fImageView->EffectiveZoom();
+        int32 currentW = width * zoom;
+        int32 currentH = height * zoom;
 
-        // File sizes
-		char diskBuf[32], memBuf[32];
-		FormatSize(diskBuf, GetFileSize(&fCurrentRef));
-		FormatSize(memBuf, bitmap->BitsLength());
-		info << "Disk size: " << diskBuf << "\n";
-		info << "Current memory size: " << memBuf << "\n";
+        AddRow("Current size:", FormatDimensions(currentW, currentH));
 
-        time_t modTime;
-        if (node.GetModificationTime(&modTime) == B_OK) {
-            info << "File date/time: " << ctime(&modTime) << "\n";
+        BString zoomStr;
+        zoomStr.SetToFormat("%.2f%%", zoom * 100);
+        AddRow("Zoom:", zoomStr);
+
+		AddRow("Color space:", ColorSpaceToString(bitmap->ColorSpace()));
+
+        BString loadStr;
+        loadStr.SetToFormat("%.2f ms", fLoadTime / 1000.0);
+        AddRow("Load time:", loadStr);
+
+        if (!fFileList.empty() && fCurrentIndex >= 0) {
+            BString idx;
+            idx.SetToFormat("%d / %lu",
+                fCurrentIndex + 1,
+                fFileList.size());
+            AddRow("Index:", idx);
         }
     }
 
-    // --- Bitmap info ---
-    int32 width  = bitmap->Bounds().IntegerWidth() + 1;
-    int32 height = bitmap->Bounds().IntegerHeight() + 1;
-    info << "Original size: " << FormatDimensions(width, height) << "\n";
-
-    // Current zoom size
-    float zoom = fImageView->EffectiveZoom();
-    int32 currentW = width * zoom;
-    int32 currentH = height * zoom;
-    info << "Current size: " << FormatDimensions(currentW, currentH) << "\n";
-
-	// Color space
-    color_space cs = bitmap->ColorSpace();
-    info << "Color space: " << cs << "\n";
-
-	// Load time
-	info << "Load time: " << fLoadTime / 1000.0 << " ms\n";
-
-    // Folder index
-    if (!fFileList.empty() && fCurrentIndex >= 0) {
-        info << "Index: " << (fCurrentIndex + 1)
-             << " / " << fFileList.size() << "\n";
-    }
-
-    BAlert* alert = new BAlert("Image properties", info.String(), "OK");
-	alert->SetShortcut(0, B_ESCAPE);
-	alert->Go();
+    fInfoWindow->PostMessage(&msg);
+    fInfoWindow->Show();
+    //fInfoWindow->Activate();
 }
 
 
@@ -961,6 +1013,10 @@ bool MainWindow::QuitRequested(void)
 	if (fSettingsWindow && fSettingsWindow->LockLooper()) {
 		fSettingsWindow->Quit();
 		fSettingsWindow = nullptr;
+	}
+	if (fInfoWindow && fInfoWindow->LockLooper()) {
+		fInfoWindow->Quit();
+		fInfoWindow = nullptr;
 	}
 	be_app->PostMessage(B_QUIT_REQUESTED);
 	return true;

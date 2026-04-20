@@ -89,5 +89,30 @@ static BString FormatDimensions(int32 width, int32 height)
 }
 
 
+static const char*
+ColorSpaceToString(color_space cs)
+{
+    switch (cs) {
+        case B_RGB32:        return "RGB 32-bit";
+        case B_RGBA32:       return "RGBA 32-bit";
+        case B_RGB24:        return "RGB 24-bit";
+        case B_RGB16:        return "RGB 16-bit (5:6:5)";
+        case B_RGB15:        return "RGB 15-bit (5:5:5)";
+        case B_RGBA15:       return "RGBA 15-bit";
+        case B_CMAP8:        return "Indexed 8-bit";
+        case B_GRAY8:        return "Grayscale 8-bit";
+        case B_GRAY1:        return "Monochrome 1-bit";
+        case B_YCbCr422:     return "YCbCr 4:2:2";
+        case B_YCbCr411:     return "YCbCr 4:1:1";
+        case B_YCbCr444:     return "YCbCr 4:4:4";
+        case B_YCbCr420:     return "YCbCr 4:2:0";
+        case B_YUV422:       return "YUV 4:2:2";
+        case B_YUV411:       return "YUV 4:1:1";
+        case B_YUV444:       return "YUV 4:4:4";
+        case B_YUV420:       return "YUV 4:2:0";
+        default:             return "Unknown";
+    }
+}
+
 
 #endif // UTILS_H

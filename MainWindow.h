@@ -12,6 +12,7 @@
 #include <MenuItem.h>
 #include <Window.h>
 #include "ImageView.h"
+#include "InfoWindow.h"
 #include "StatusView.h"
 #include "Toolbar.h"
 #include <StringView.h>
@@ -33,6 +34,7 @@ private:
 			ImageView*		fImageView;
 			StatusView*		fStatusView;
 			BToolBar*		fToolBar;
+			InfoWindow*		fInfoWindow;
 
 			status_t		_LoadSettings(BMessage& settings);
 			status_t		_SaveSettings();

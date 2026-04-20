@@ -45,6 +45,7 @@ enum {
 	M_SHOW_INFO		= 'info',
 
 	M_SHOW_SETTINGS = 'stng',
+	MSG_SET_INFO	= 'sinf',
 	M_REPORT_A_BUG  = 'rbug',
 	M_SHOW_HELP     = 'help',
 	M_PASTE			= 'past',
