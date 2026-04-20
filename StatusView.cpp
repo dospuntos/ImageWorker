@@ -58,7 +58,7 @@ void StatusView::Update(const entry_ref* ref,
 	zoom.SetToFormat("%.0f%%", imageView->EffectiveZoom() * 100.0f);
 	text << zoom;
 
-    if (imageView->getScaleMode() == SCALE_FIT)
+    if (imageView->getScaleMode() == SCALE_FIT_WINDOW)
         text << " Fit";
 
     char diskBuf[32], memBuf[32];

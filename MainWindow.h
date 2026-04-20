@@ -40,7 +40,8 @@ private:
 			void			_UpdateStatus();
 			void			_ShowImageInfo();
 
-			BMenuItem*		fSaveMenuItem;
+			BMenuItem*		fMSave;
+			BMenuItem*		fMSaveAs;
 			BFilePanel*		fOpenPanel;
 			BFilePanel*		fSavePanel;
 
@@ -66,8 +67,10 @@ private:
 			bool			_AlwaysOnTop() {return Feel() == B_FLOATING_ALL_WINDOW_FEEL;};
 
 			// menu items
-			BMenuItem*		fUndoMenuItem;
-			BMenuItem*		fRedoMenuItem;
+			BMenuItem*		fMReopen;
+			BMenuItem*		fMDeleteImage;
+			BMenuItem*		fMUndo;
+			BMenuItem*		fMRedo;
 			BMenuItem*		fMRotate90CW;
 			BMenuItem*		fMRotate90CCW;
 			BMenuItem* 		fMFlipVertical;
@@ -78,6 +81,13 @@ private:
 			BMenuItem*		fMInformation;
 			BMenuItem* 		fMAlwaysOnTop;
 			BMenu*			fMShowChannel;
+			BMenuItem*		fMZoomIn;
+			BMenuItem*		fMZoomOut;
+			BMenuItem*		fMFit;
+			BMenuItem*		fMFitLarge;
+			BMenuItem*		fMActualSize;
+			BMenuItem* 		fMFitWidth;
+			BMenuItem*		fMFitHeight;
 };
 
 #endif

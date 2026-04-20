@@ -67,9 +67,6 @@ MainWindow::MainWindow()
 			.Add(fStatusView)
 		.End();
 
-	//fStatusView->SetExplicitMaxSize(BSize(B_SIZE_UNLIMITED, B_SIZE_UNSET));
-	//fStatusView->SetExplicitMinSize(BSize(0, 20));
-
 	BMessenger messenger(this);
 	fOpenPanel = new BFilePanel(B_OPEN_PANEL, &messenger, NULL, B_FILE_NODE, false);
 	fSavePanel = new BFilePanel(B_SAVE_PANEL, &messenger, NULL, B_FILE_NODE, false);
@@ -97,6 +94,10 @@ MainWindow::MainWindow()
 	int32 undoSteps;
 	if (settings.FindInt32("undoSteps", &undoSteps) == B_OK)
 		fUndoSteps = undoSteps;
+
+	int32 scaleMode;
+	if (settings.FindInt32("scaleMode", &scaleMode) == B_OK)
+		fImageView->SetScaleMode((ScaleMode)scaleMode);
 
 	MoveOnScreen();
 	_UpdateStatus();
@@ -128,7 +129,6 @@ MainWindow::MessageReceived(BMessage* message)
 
 			_LoadDirectory(ref);
 			_LoadImage(ref);
-			fSaveMenuItem->SetEnabled(true);
 		} break;
 
 		case B_SAVE_REQUESTED:
@@ -183,7 +183,7 @@ MainWindow::MessageReceived(BMessage* message)
 
 		case M_NEW_FILE:
 		{
-			fSaveMenuItem->SetEnabled(false);
+			fMSave->SetEnabled(false);
 
 			printf("New\n");
 		} break;
@@ -196,6 +196,12 @@ MainWindow::MessageReceived(BMessage* message)
 				fOpenPanel->SetPanelDirectory(&dir);
 			}
 			fOpenPanel->Show();
+		} break;
+
+		case M_REOPEN_FILE:
+		{
+			_LoadDirectory(fCurrentRef);
+			_LoadImage(fCurrentRef);
 		} break;
 
 		case M_SAVE_FILE:
@@ -225,7 +231,7 @@ MainWindow::MessageReceived(BMessage* message)
 			break;
 		case M_FIT_TO_WINDOW:
 		{
-			fImageView->SetScaleMode(SCALE_FIT);
+			fImageView->SetScaleMode(SCALE_FIT_WINDOW);
 			_UpdateStatus();
 		} break;
 
@@ -235,70 +241,58 @@ MainWindow::MessageReceived(BMessage* message)
 			_UpdateStatus();
 		} break;
 
+		case M_ZOOM_IN:
+			fImageView->ZoomIn();
+			break;
+		case M_ZOOM_OUT:
+			fImageView->ZoomOut();
+			break;
+
 		case M_NEXT_IMAGE:
-		{
 			NextImage();
-		} break;
-
+			break;
 		case M_PREV_IMAGE:
-		{
 			PrevImage();
-		} break;
-
+			break;
 		case M_DELETE_IMAGE:
-		{
 			DeleteCurrentImage();
 			break;
-		}
 		case M_ROTATE_90_CW:
-		{
 			fImageView->Rotate90CW();
-		} break;
-
+			break;
 		case M_ROTATE_90_CCW:
-		{
 			fImageView->Rotate90CCW();
-		} break;
-
+			break;
 		case M_FLIP_VERTICAL:
-		{
 			fImageView->FlipVertical();
-		} break;
-
+			break;
 		case M_FLIP_HORIZONTAL:
-		{
 			fImageView->FlipHorizontal();
-		} break;
-
+			break;
 		case M_CONVERT_TO_GRAYSCALE:
-		{
 			fImageView->ConvertToGrayscale();
-		} break;
+			break;
 
 		case M_SWAP_COLOR_RBG:
 		{
 			int order[4] = {0, 2, 1, 3}; // R B G
 			fImageView->SwapColors(order);
 		} break;
-
 		case M_SWAP_COLOR_GRB:
 		{
 			int order[4] = {1, 0, 2, 3}; // G R B
 			fImageView->SwapColors(order);
 		} break;
-
 		case M_SWAP_COLOR_GBR:
 		{
 			int order[4] = {2, 0, 1, 3}; // G B R
 			fImageView->SwapColors(order);
 		} break;
-
 		case M_SWAP_COLOR_BRG:
 		{
 			int order[4] = {1, 2, 0, 3}; // B R G
 			fImageView->SwapColors(order);
 		} break;
-
 		case M_SWAP_COLOR_BGR:
 		{
 			int order[4] = {2, 1, 0, 3}; // B G R (swap R and B)
@@ -320,9 +314,8 @@ MainWindow::MessageReceived(BMessage* message)
 			break;
 
 		case 'stat':
-		{
 			_UpdateStatus();
-		} break;
+			break;
 
 		case M_PASTE:
 		{
@@ -377,13 +370,9 @@ MainWindow::MessageReceived(BMessage* message)
 		} break;
 
 		case M_SHOW_INFO:
-		{
 			_ShowImageInfo();
 			break;
-		}
-
 		case M_SHOW_SETTINGS:
-
 		{
 			if (!fSettingsWindow) {
 				fSettingsWindow
@@ -421,10 +410,8 @@ MainWindow::MessageReceived(BMessage* message)
 		} break;
 
 		default:
-		{
 			BWindow::MessageReceived(message);
 			break;
-		}
 	}
 }
 
@@ -455,7 +442,6 @@ MainWindow::_BuildMenu()
 	IconMenuItem* iconMenu = new IconMenuItem(menu, NULL, kApplicationSignature, B_MINI_ICON);
 	menuBar->AddItem(iconMenu);
 
-
 	// menu 'File'
 	menu = new BMenu(B_TRANSLATE("File"));
 
@@ -466,15 +452,25 @@ MainWindow::_BuildMenu()
 	openItem->SetShortcut('O', 0);
 	menu->AddItem(openItem);
 
-	fSaveMenuItem = new BMenuItem(B_TRANSLATE("Save"), new BMessage(M_SAVE_FILE), 'S');
-	fSaveMenuItem->SetEnabled(false);
-	menu->AddItem(fSaveMenuItem);
+	fMReopen = new BMenuItem(B_TRANSLATE("Reopen"), new BMessage(M_REOPEN_FILE), 'R', B_SHIFT_KEY);
+	menu->AddItem(fMReopen);
 
 	menu->AddSeparatorItem();
 
-	item = new BMenuItem(B_TRANSLATE("About" B_UTF8_ELLIPSIS), new BMessage(B_ABOUT_REQUESTED));
-	item->SetTarget(be_app);
-	menu->AddItem(item);
+	fMDeleteImage = new BMenuItem(B_TRANSLATE("Delete file"), new BMessage(M_DELETE_IMAGE));
+	menu->AddItem(fMDeleteImage);
+
+	menu->AddSeparatorItem();
+
+	fMSave = new BMenuItem(B_TRANSLATE("Save (original folder)"), new BMessage(M_SAVE_FILE), 'S');
+	menu->AddItem(fMSave);
+
+	fMSaveAs = new BMenuItem(B_TRANSLATE("Save as" B_UTF8_ELLIPSIS), new BMessage(M_SAVE_FILE));
+	menu->AddItem(fMSaveAs);
+
+	menu->AddSeparatorItem();
+
+	menu->AddItem(new BMenuItem(B_TRANSLATE("Exit"), new BMessage(B_QUIT_REQUESTED)));
 
 	menuBar->AddItem(menu);
 
@@ -485,11 +481,11 @@ MainWindow::_BuildMenu()
 
 	menu->AddSeparatorItem();
 
-	fUndoMenuItem = new BMenuItem(B_TRANSLATE("Undo"), new BMessage(B_UNDO), 'Z');
-	menu->AddItem(fUndoMenuItem);
+	fMUndo = new BMenuItem(B_TRANSLATE("Undo"), new BMessage(B_UNDO), 'Z');
+	menu->AddItem(fMUndo);
 
-	fRedoMenuItem = new BMenuItem(B_TRANSLATE("Redo"), new BMessage(B_REDO), 'Z', B_SHIFT_KEY);
-	menu->AddItem(fRedoMenuItem);
+	fMRedo = new BMenuItem(B_TRANSLATE("Redo"), new BMessage(B_REDO), 'Z', B_SHIFT_KEY);
+	menu->AddItem(fMRedo);
 
 	menuBar->AddItem(menu);
 
@@ -572,11 +568,29 @@ MainWindow::_BuildMenu()
 	// menu 'View'
 	menu = new BMenu(B_TRANSLATE("View"));
 
-	item = new BMenuItem(B_TRANSLATE("Fit to window"), new BMessage(M_FIT_TO_WINDOW), 'F');
-	menu->AddItem(item);
+	submenu = new BMenu(B_TRANSLATE("Display options (window mode)"));
 
-	item = new BMenuItem(B_TRANSLATE("Actual size"), new BMessage(M_ACTUAL_SIZE), '1');
-	menu->AddItem(item);
+	fMFit = new BMenuItem(B_TRANSLATE("Fit to window"), new BMessage(M_FIT_TO_WINDOW));
+	submenu->AddItem(fMFit);
+
+	fMFitLarge = new BMenuItem(B_TRANSLATE("Fit only big images to window"), new BMessage(M_FIT_LARGE_TO_WINDOW));
+	submenu->AddItem(fMFitLarge);
+
+	fMActualSize = new BMenuItem(B_TRANSLATE("Actual size (1:1)"), new BMessage(M_ACTUAL_SIZE), '1');
+	submenu->AddItem(fMActualSize);
+
+	fMFitWidth = new BMenuItem(B_TRANSLATE("Fit width"), new BMessage(M_FIT_WIDTH));
+	submenu->AddItem(fMFitWidth);
+
+	fMFitHeight = new BMenuItem(B_TRANSLATE("Fit height"), new BMessage(M_FIT_HEIGHT));
+	submenu->AddItem(fMFitHeight);
+
+	menu->AddItem(submenu);
+
+	menu->AddSeparatorItem();
+
+	menu->AddItem(new BMenuItem(B_TRANSLATE("Zoom in"), new BMessage(M_ZOOM_IN), '+'));
+	menu->AddItem(new BMenuItem(B_TRANSLATE("Zoom out"), new BMessage(M_ZOOM_OUT), '-'));
 
 	menuBar->AddItem(menu);
 
@@ -630,6 +644,7 @@ MainWindow::_SaveSettings()
 	settings.AddBool("closeOnEscape", fCloseOnEscape);
 	settings.AddBool("alwaysOnTop",_AlwaysOnTop());
 	settings.AddInt32("undoSteps", fUndoSteps);
+	settings.AddInt32("scaleMode", fImageView->getScaleMode());
 
 	if (status == B_OK)
 		status = settings.Flatten(&file);
@@ -641,6 +656,8 @@ MainWindow::_SaveSettings()
 void
 MainWindow::MenusBeginning()
 {
+	fMSave->SetEnabled(fHasImage);
+	fMSaveAs->SetEnabled(fHasImage);
 	fMInformation->SetEnabled(fHasImage);
 	fMRotate90CW->SetEnabled(fHasImage);
 	fMRotate90CCW->SetEnabled(fHasImage);
@@ -650,8 +667,17 @@ MainWindow::MenusBeginning()
 	fMSwapColors->SetEnabled(fHasImage);
 	fMInvertColors->SetEnabled(fHasImage);
 	fMShowChannel->SetEnabled(fHasImage);
-	fUndoMenuItem->SetEnabled(fImageView->CanUndo());
-	fRedoMenuItem->SetEnabled(fImageView->CanRedo());
+	fMReopen->SetEnabled(fHasImage);
+	fMDeleteImage->SetEnabled(fHasImage);
+
+	fMUndo->SetEnabled(fImageView->CanUndo());
+	fMRedo->SetEnabled(fImageView->CanRedo());
+
+	fMFit->SetMarked(fImageView->getScaleMode() == SCALE_FIT_WINDOW);
+	fMFitLarge->SetMarked(fImageView->getScaleMode() == SCALE_FIT_LARGE_ONLY);
+	fMActualSize->SetMarked(fImageView->getScaleMode() == SCALE_ORIGINAL);
+	fMFitWidth->SetMarked(fImageView->getScaleMode() == SCALE_FIT_WIDTH);
+	fMFitHeight->SetMarked(fImageView->getScaleMode() == SCALE_FIT_HEIGHT);
 }
 
 
@@ -692,10 +718,10 @@ MainWindow::_ToggleScaleMode()
 	if (!fImageView)
 		return;
 
-	if (fImageView->getScaleMode() == SCALE_FIT)
+	if (fImageView->getScaleMode() == SCALE_FIT_WINDOW)
 		fImageView->SetScaleMode(SCALE_ORIGINAL);
 	else
-		fImageView->SetScaleMode(SCALE_FIT);
+		fImageView->SetScaleMode(SCALE_FIT_WINDOW);
 }
 
 

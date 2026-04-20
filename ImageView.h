@@ -10,8 +10,11 @@
 #include <vector>
 
 enum ScaleMode {
-	SCALE_FIT,
-	SCALE_ORIGINAL
+	SCALE_FIT_WINDOW,
+	SCALE_FIT_LARGE_ONLY,
+	SCALE_ORIGINAL,
+	SCALE_FIT_WIDTH,
+	SCALE_FIT_HEIGHT
 };
 
 enum ColorChannel {

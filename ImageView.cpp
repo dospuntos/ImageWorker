@@ -12,7 +12,7 @@
 ImageView::ImageView()
     : BView("image_view", B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE | B_NAVIGABLE),
       fBitmap(nullptr),
-	  fScaleMode(SCALE_FIT),
+	  fScaleMode(SCALE_FIT_WINDOW),
 	  fZoom(1.0f),
 	  fOffset(BPoint(0,0)),
 	  fDragging(false)
@@ -55,7 +55,7 @@ ImageView::SetBitmap(BBitmap* bitmap)
     fBitmap = bitmap;
 	fOffset = BPoint(0,0);
 	fZoom = 1.0f;
-	fScaleMode = SCALE_FIT;
+	//fScaleMode = SCALE_FIT_WINDOW;
 
     Invalidate();
 }
@@ -64,7 +64,7 @@ void
 ImageView::SetScaleMode(ScaleMode mode)
 {
 	fScaleMode = mode;
-	if (mode == SCALE_FIT)
+	if (mode == SCALE_FIT_WINDOW)
         fOffset = BPoint(0, 0);
 
 	if (Window())
@@ -100,7 +100,7 @@ ImageView::Draw(BRect)
 
     // --- unified zoom ---
     float zoom;
-    if (fScaleMode == SCALE_FIT) {
+    if (fScaleMode == SCALE_FIT_WINDOW) {
         float scaleX = viewWidth / bitmapWidth;
         float scaleY = viewHeight / bitmapHeight;
         zoom = std::min(scaleX, scaleY);
@@ -154,10 +154,10 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
             case 'f':
             case 'F':
                 // toggle scale mode
-                if (fScaleMode == SCALE_FIT)
+                if (fScaleMode == SCALE_FIT_WINDOW)
                     SetScaleMode(SCALE_ORIGINAL);
                 else
-                    SetScaleMode(SCALE_FIT);
+                    SetScaleMode(SCALE_FIT_WINDOW);
                 return;
 			case B_RIGHT_ARROW:
 				if (Window())
@@ -232,7 +232,7 @@ void ImageView::Clear()
 
 		fOffset = BPoint(0, 0);
 		fZoom = 1.0f;
-		fScaleMode = SCALE_FIT;
+		fScaleMode = SCALE_FIT_WINDOW;
 
 		ClearHistory();
 		Invalidate();
@@ -592,7 +592,7 @@ float ImageView::EffectiveZoom() const
     float viewWidth = viewBounds.Width() + 1;
     float viewHeight = viewBounds.Height() + 1;
 
-    if (fScaleMode == SCALE_FIT) {
+    if (fScaleMode == SCALE_FIT_WINDOW) {
         float scaleX = viewWidth / bitmapWidth;
         float scaleY = viewHeight / bitmapHeight;
         return std::min(scaleX, scaleY);
@@ -613,7 +613,7 @@ void ImageView::MouseWheelChanged(BPoint where, float, float y)
     float factor = (y < 0) ? 1.25f : 0.8f;
 
     // Switch from FIT → zoom mode
-    if (fScaleMode == SCALE_FIT) {
+    if (fScaleMode == SCALE_FIT_WINDOW) {
         fZoom = oldZoom;
         fScaleMode = SCALE_ORIGINAL;
     }
@@ -685,7 +685,7 @@ void ImageView::MouseMoved(BPoint where, uint32, const BMessage*)
 	if (!fDragging)
 		return;
 
-	if (fScaleMode == SCALE_FIT)
+	if (fScaleMode == SCALE_FIT_WINDOW)
 		return;
 
 	float dx = where.x - fLastMouse.x;
@@ -723,7 +723,7 @@ void ImageView::_ClampOffset()
     float bmpH = fBitmap->Bounds().Height() + 1;
 
     float zoom;
-    if (fScaleMode == SCALE_FIT) {
+    if (fScaleMode == SCALE_FIT_WINDOW) {
         float scaleX = viewW / bmpW;
         float scaleY = viewH / bmpH;
         zoom = std::min(scaleX, scaleY);
