@@ -41,7 +41,6 @@ SettingsWindow::SettingsWindow(bool closeOnEscape, int undoSteps)
             .AddGlue()
             .Add(closeBtn)
         .End();
-    Show();
 }
 
 
@@ -54,14 +53,9 @@ void SettingsWindow::MessageReceived(BMessage* message)
             msg.AddBool("value", fCloseOnEscape->Value() == B_CONTROL_ON);
 			msg.AddInt32("undoSteps", fUndoSteps->Value());
 
-			PostMessage(M_CLOSE_SETTINGS);
             be_app->WindowAt(0)->PostMessage(&msg);
             break;
         }
-		case M_CLOSE_SETTINGS:
-			Hide();
-			break;
-
         default:
             BWindow::MessageReceived(message);
     }

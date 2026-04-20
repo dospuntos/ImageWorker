@@ -68,7 +68,7 @@ MainWindow::MainWindow()
 		.End();
 
 	//fStatusView->SetExplicitMaxSize(BSize(B_SIZE_UNLIMITED, B_SIZE_UNSET));
-	fStatusView->SetExplicitMinSize(BSize(0, 20));
+	//fStatusView->SetExplicitMinSize(BSize(0, 20));
 
 	BMessenger messenger(this);
 	fOpenPanel = new BFilePanel(B_OPEN_PANEL, &messenger, NULL, B_FILE_NODE, false);
