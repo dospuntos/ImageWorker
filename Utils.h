@@ -8,9 +8,13 @@
 
 #include <String.h>
 #include <Bitmap.h>
+#include <Catalog.h>
 #include <File.h>
 #include <cstdio>
 #include <cmath>
+
+#undef B_TRANSLATION_CONTEXT
+#define B_TRANSLATION_CONTEXT "Utilities"
 
 
 static off_t GetFileSize(const entry_ref* ref)
@@ -36,7 +40,10 @@ static size_t GetBitmapSize(BBitmap* bmp)
 
 static void FormatSize(char* out, size_t size)
 {
-    const char* units[] = {"B", "KB", "MB", "GB"};
+    const char* units[] = {	B_TRANSLATE_COMMENT("B", "Bytes"),
+							B_TRANSLATE_COMMENT("KB", "Kilobytes"),
+							B_TRANSLATE_COMMENT("MB", "Megabytes"),
+							B_TRANSLATE_COMMENT("GB", "Gigabytes")};
     int i = 0;
     double s = (double)size;
 
@@ -78,10 +85,10 @@ static BString FormatDimensions(int32 width, int32 height)
     }
 
     if (ratioLabel) {
-        out.SetToFormat("%d x %d Pixels (%.2f MPixels) (%s)",
+        out.SetToFormat(B_TRANSLATE("%d x %d Pixels (%.2f MPixels) (%s)"),
             width, height, mp, ratioLabel);
     } else {
-        out.SetToFormat("%d x %d Pixels (%.2f MPixels) (%.2f:1)",
+        out.SetToFormat(B_TRANSLATE("%d x %d Pixels (%.2f MPixels) (%.2f:1)"),
             width, height, mp, ratio);
     }
 
@@ -93,24 +100,24 @@ static const char*
 ColorSpaceToString(color_space cs)
 {
     switch (cs) {
-        case B_RGB32:        return "RGB 32-bit";
-        case B_RGBA32:       return "RGBA 32-bit";
-        case B_RGB24:        return "RGB 24-bit";
-        case B_RGB16:        return "RGB 16-bit (5:6:5)";
-        case B_RGB15:        return "RGB 15-bit (5:5:5)";
-        case B_RGBA15:       return "RGBA 15-bit";
-        case B_CMAP8:        return "Indexed 8-bit";
-        case B_GRAY8:        return "Grayscale 8-bit";
-        case B_GRAY1:        return "Monochrome 1-bit";
-        case B_YCbCr422:     return "YCbCr 4:2:2";
-        case B_YCbCr411:     return "YCbCr 4:1:1";
-        case B_YCbCr444:     return "YCbCr 4:4:4";
-        case B_YCbCr420:     return "YCbCr 4:2:0";
-        case B_YUV422:       return "YUV 4:2:2";
-        case B_YUV411:       return "YUV 4:1:1";
-        case B_YUV444:       return "YUV 4:4:4";
-        case B_YUV420:       return "YUV 4:2:0";
-        default:             return "Unknown";
+        case B_RGB32:        return B_TRANSLATE("RGB 32-bit");
+        case B_RGBA32:       return B_TRANSLATE("RGBA 32-bit");
+        case B_RGB24:        return B_TRANSLATE("RGB 24-bit");
+        case B_RGB16:        return B_TRANSLATE("RGB 16-bit (5:6:5)");
+        case B_RGB15:        return B_TRANSLATE("RGB 15-bit (5:5:5)");
+        case B_RGBA15:       return B_TRANSLATE("RGBA 15-bit");
+        case B_CMAP8:        return B_TRANSLATE("Indexed 8-bit");
+        case B_GRAY8:        return B_TRANSLATE("Grayscale 8-bit");
+        case B_GRAY1:        return B_TRANSLATE("Monochrome 1-bit");
+        case B_YCbCr422:     return B_TRANSLATE("YCbCr 4:2:2");
+        case B_YCbCr411:     return B_TRANSLATE("YCbCr 4:1:1");
+        case B_YCbCr444:     return B_TRANSLATE("YCbCr 4:4:4");
+        case B_YCbCr420:     return B_TRANSLATE("YCbCr 4:2:0");
+        case B_YUV422:       return B_TRANSLATE("YUV 4:2:2");
+        case B_YUV411:       return B_TRANSLATE("YUV 4:1:1");
+        case B_YUV444:       return B_TRANSLATE("YUV 4:4:4");
+        case B_YUV420:       return B_TRANSLATE("YUV 4:2:0");
+        default:             return B_TRANSLATE("Unknown");
     }
 }
 

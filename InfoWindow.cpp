@@ -6,13 +6,17 @@
 #include "Constants.h"
 
 #include <LayoutBuilder.h>
+#include <Catalog.h>
 #include <StringView.h>
 #include <Font.h>
+
+#undef B_TRANSLATION_CONTEXT
+#define B_TRANSLATION_CONTEXT "InfoWindow"
 
 InfoWindow::InfoWindow()
     : BWindow(
         BRect(100, 100, 500, 800),
-        "Image properties",
+        B_TRANSLATE("Image properties"),
         B_TITLED_WINDOW,
         B_ASYNCHRONOUS_CONTROLS | B_CLOSE_ON_ESCAPE),
       fRow(0)
@@ -77,6 +81,7 @@ void InfoWindow::_BuildFromMessage(BMessage* msg)
             }
         }
     }
+	ResizeToPreferred();
 }
 
 void
@@ -110,11 +115,9 @@ InfoWindow::_AddItem(const char* label, const char* value)
 
     BTextControl* text = new BTextControl(nullptr, nullptr, value, nullptr);
     text->SetEnabled(false);
-	text->SetExplicitMinSize(BSize(200, B_SIZE_UNSET));
+	text->SetExplicitMinSize(BSize(300, B_SIZE_UNSET));
     text->TextView()->MakeSelectable(true);
     text->TextView()->MakeEditable(false);
-
-    text->TextView()->SetFont(be_fixed_font);
 
     labelView->SetExplicitAlignment(BAlignment(B_ALIGN_RIGHT, B_ALIGN_MIDDLE));
     text->SetExplicitAlignment(BAlignment(B_ALIGN_LEFT, B_ALIGN_MIDDLE));

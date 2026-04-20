@@ -25,7 +25,6 @@ public:
 	bool					QuitRequested(void);
 	virtual void			MessageReceived(BMessage* msg);
 	void 					MenusBeginning();
-	void					_ToggleScaleMode();
 	bool					closeOnEscape() { return fCloseOnEscape; }
 	int						undoSteps() { return fUndoSteps; }
 
@@ -60,6 +59,9 @@ private:
 			void			_LoadImageAtIndex(int32 index);
 			void			NextImage();
 			void			PrevImage();
+			void			FirstImage();
+			void			LastImage();
+			void			RandomImage();
 			void			DeleteCurrentImage();
 
 			// settings
@@ -90,6 +92,11 @@ private:
 			BMenuItem*		fMActualSize;
 			BMenuItem* 		fMFitWidth;
 			BMenuItem*		fMFitHeight;
+			BMenuItem*		fMNext;
+			BMenuItem*		fMPrevious;
+			BMenuItem*		fMFirst;
+			BMenuItem*		fMLast;
+			BMenuItem*		fMRandom;
 };
 
 #endif

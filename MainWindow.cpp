@@ -37,6 +37,7 @@
 #include <Path.h>
 #include <Entry.h>
 #include <Node.h>
+#include <stdlib.h>
 
 #include <cstdio>
 
@@ -45,7 +46,7 @@
 
 MainWindow::MainWindow()
 	:
-	BWindow(BRect(100, 100, 500, 400), B_TRANSLATE_SYSTEM_NAME(kApplicationName), B_TITLED_WINDOW,
+	BWindow(BRect(100, 100, 800, 600), B_TRANSLATE_SYSTEM_NAME(kApplicationName), B_TITLED_WINDOW,
 		B_ASYNCHRONOUS_CONTROLS | B_QUIT_ON_WINDOW_CLOSE),
 		fHasImage(false),
 		fUndoSteps(5),
@@ -79,7 +80,7 @@ MainWindow::MainWindow()
 	BRect frame;
 	if (settings.FindRect("main_window_rect", &frame) == B_OK) {
 		MoveTo(frame.LeftTop());
-		ResizeTo(frame.Width(), frame.Height());
+		//ResizeTo(frame.Width(), frame.Height());
 	}
 
 	settings.FindRef("lastSaveDir", &fLastSaveDir);
@@ -231,16 +232,25 @@ MainWindow::MessageReceived(BMessage* message)
 			fImageView->Redo();
 			break;
 		case M_FIT_TO_WINDOW:
-		{
 			fImageView->SetScaleMode(SCALE_FIT_WINDOW);
 			_UpdateStatus();
-		} break;
-
+			break;
 		case M_ACTUAL_SIZE:
-		{
 			fImageView->SetScaleMode(SCALE_ORIGINAL);
 			_UpdateStatus();
-		} break;
+			break;
+		case M_FIT_LARGE_TO_WINDOW:
+			fImageView->SetScaleMode(SCALE_FIT_LARGE_ONLY);
+			_UpdateStatus();
+			break;
+		case M_FIT_WIDTH:
+			fImageView->SetScaleMode(SCALE_FIT_WIDTH);
+			_UpdateStatus();
+			break;
+		case M_FIT_HEIGHT:
+			fImageView->SetScaleMode(SCALE_FIT_HEIGHT);
+			_UpdateStatus();
+			break;
 
 		case M_ZOOM_IN:
 			fImageView->ZoomIn();
@@ -254,6 +264,15 @@ MainWindow::MessageReceived(BMessage* message)
 			break;
 		case M_PREV_IMAGE:
 			PrevImage();
+			break;
+		case M_FIRST_IMAGE:
+			FirstImage();
+			break;
+		case M_LAST_IMAGE:
+			LastImage();
+			break;
+		case M_RANDOM_IMAGE:
+			RandomImage();
 			break;
 		case M_DELETE_IMAGE:
 			DeleteCurrentImage();
@@ -276,38 +295,38 @@ MainWindow::MessageReceived(BMessage* message)
 
 		case M_SWAP_COLOR_RBG:
 		{
-			int order[4] = {0, 2, 1, 3}; // R B G
+			int order[4] = {1, 0, 2, 3}; // R B G
 			fImageView->SwapColors(order);
 		} break;
 		case M_SWAP_COLOR_GRB:
 		{
-			int order[4] = {1, 0, 2, 3}; // G R B
+			int order[4] = {0, 2, 1, 3}; // G R B
 			fImageView->SwapColors(order);
 		} break;
 		case M_SWAP_COLOR_GBR:
 		{
-			int order[4] = {2, 0, 1, 3}; // G B R
+			int order[4] = {1, 2, 0, 3}; // G B R
 			fImageView->SwapColors(order);
 		} break;
 		case M_SWAP_COLOR_BRG:
 		{
-			int order[4] = {1, 2, 0, 3}; // B R G
+			int order[4] = {2, 0, 1, 3}; // B R G
 			fImageView->SwapColors(order);
 		} break;
 		case M_SWAP_COLOR_BGR:
 		{
-			int order[4] = {2, 1, 0, 3}; // B G R (swap R and B)
+			int order[4] = {2, 1, 0, 3}; // B G R
 			fImageView->SwapColors(order);
 		} break;
 
 		case M_ISOLATE_CHANNEL_RED:
-			fImageView->IsolateChannel(CHANNEL_RED, false);
+			fImageView->IsolateChannel(CHANNEL_RED, true);
 			break;
 		case M_ISOLATE_CHANNEL_GREEN:
-			fImageView->IsolateChannel(CHANNEL_GREEN, false);
+			fImageView->IsolateChannel(CHANNEL_GREEN, true);
 			break;
 		case M_ISOLATE_CHANNEL_BLUE:
-			fImageView->IsolateChannel(CHANNEL_BLUE, false);
+			fImageView->IsolateChannel(CHANNEL_BLUE, true);
 			break;
 
 		case M_INVERT_COLORS:
@@ -590,6 +609,23 @@ MainWindow::_BuildMenu()
 
 	menu->AddSeparatorItem();
 
+	fMNext = new BMenuItem(B_TRANSLATE("Next file in folder"), new BMessage(M_NEXT_IMAGE));
+	menu->AddItem(fMNext);
+
+	fMPrevious = new BMenuItem(B_TRANSLATE("Previous file in folder"), new BMessage(M_PREV_IMAGE));
+	menu->AddItem(fMPrevious);
+
+	fMFirst = new BMenuItem(B_TRANSLATE("First file in folder"), new BMessage(M_FIRST_IMAGE));
+	menu->AddItem(fMFirst);
+
+	fMLast = new BMenuItem(B_TRANSLATE("Last file in folder"), new BMessage(M_LAST_IMAGE));
+	menu->AddItem(fMLast);
+
+	fMRandom = new BMenuItem(B_TRANSLATE("Random file in folder"), new BMessage(M_RANDOM_IMAGE));
+	menu->AddItem(fMRandom);
+
+	menu->AddSeparatorItem();
+
 	menu->AddItem(new BMenuItem(B_TRANSLATE("Zoom in"), new BMessage(M_ZOOM_IN), '+'));
 	menu->AddItem(new BMenuItem(B_TRANSLATE("Zoom out"), new BMessage(M_ZOOM_OUT), '-'));
 
@@ -716,19 +752,6 @@ MainWindow::_LoadImage(const entry_ref& ref)
 }
 
 
-void
-MainWindow::_ToggleScaleMode()
-{
-	if (!fImageView)
-		return;
-
-	if (fImageView->getScaleMode() == SCALE_FIT_WINDOW)
-		fImageView->SetScaleMode(SCALE_ORIGINAL);
-	else
-		fImageView->SetScaleMode(SCALE_FIT_WINDOW);
-}
-
-
 static bool _IsImageFile(const entry_ref& ref)
 {
     BNode node(&ref);
@@ -811,6 +834,32 @@ void MainWindow::PrevImage()
     _LoadImageAtIndex(prev);
 }
 
+void MainWindow::FirstImage()
+{
+	if (fFileList.empty())
+		return;
+
+	_LoadImageAtIndex(0);
+}
+
+void MainWindow::LastImage()
+{
+	if (fFileList.empty())
+		return;
+
+	_LoadImageAtIndex(fFileList.size() -1);
+}
+
+
+void MainWindow::RandomImage()
+{
+    if (fFileList.empty())
+        return;
+
+    int32 index = rand() % fFileList.size();
+    _LoadImageAtIndex(index);
+}
+
 
 void MainWindow::DeleteCurrentImage()
 {
@@ -869,6 +918,7 @@ void MainWindow::_UpdateStatus()
                         fCurrentIndex,
                         fFileList.size());
 	// Update toolbar
+	fToolBar->SetActionEnabled(M_SAVE_FILE, fHasImage);
 	fToolBar->SetActionEnabled(M_PREV_IMAGE, fHasImage);
 	fToolBar->SetActionEnabled(M_NEXT_IMAGE, fHasImage);
 	fToolBar->SetActionEnabled(M_DELETE_IMAGE, fHasImage);
@@ -906,9 +956,7 @@ void MainWindow::_ShowImageInfo()
         AddRow("Status:", "No image loaded");
     } else {
 
-        // -------------------------
         // File
-        // -------------------------
         if (fCurrentRef.name) {
             AddSection("File");
 
@@ -967,9 +1015,7 @@ void MainWindow::_ShowImageInfo()
             }
         }
 
-        // -------------------------
         // Image
-        // -------------------------
         AddSection("Image");
 
         int32 width  = bitmap->Bounds().IntegerWidth() + 1;
@@ -1003,8 +1049,8 @@ void MainWindow::_ShowImageInfo()
     }
 
     fInfoWindow->PostMessage(&msg);
-    fInfoWindow->Show();
-    //fInfoWindow->Activate();
+	if (fInfoWindow->IsHidden())
+		fInfoWindow->Show();
 }
 
 

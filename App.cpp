@@ -9,6 +9,7 @@
 
 #include <AboutWindow.h>
 #include <Catalog.h>
+#include <time.h>
 
 #undef B_TRANSLATION_CONTEXT
 #define B_TRANSLATION_CONTEXT "Application"
@@ -20,6 +21,7 @@ App::App()
 {
 	fMainWindow = new MainWindow();
 	fMainWindow->Show();
+	srand(time(NULL)); // For random generator
 }
 
 

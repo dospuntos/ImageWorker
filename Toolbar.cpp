@@ -28,11 +28,11 @@ CreateToolbar(BHandler* target)
 	toolbar->AddAction(new BMessage(M_NEW_FILE), target, ResourceToBitmap("NEW_ICON"),
 		B_TRANSLATE("New"), "", false);
 	toolbar->AddAction(new BMessage(M_OPEN_FILE), target, ResourceToBitmap("OPEN_ICON"),
-		B_TRANSLATE("Open file" B_UTF8_ELLIPSIS), "", false);
+		B_TRANSLATE("Open file (O)" B_UTF8_ELLIPSIS), "", false);
 	toolbar->AddAction(new BMessage(M_SAVE_FILE), target, ResourceToBitmap("SAVE_ICON"),
-		B_TRANSLATE("Save file"), "", false);
+		B_TRANSLATE("Save file (S)"), "", false);
 	toolbar->AddAction(new BMessage(M_DELETE_IMAGE), target, ResourceToBitmap("TRASH_ICON"),
-		B_TRANSLATE("Delete image"), "", false);
+		B_TRANSLATE("Delete image (Del)"), "", false);
 
 	toolbar->GroupLayout()->AddItem(
 		BSpaceLayoutItem::CreateHorizontalStrut(B_USE_HALF_ITEM_SPACING));
@@ -57,12 +57,12 @@ CreateToolbar(BHandler* target)
 
 
 	toolbar->AddAction(new BMessage(B_UNDO), target, ResourceToBitmap("UNDO_ICON"),
-		B_TRANSLATE("Undo"), "", false);
+		B_TRANSLATE("Undo (Ctrl-Z)"), "", false);
 	toolbar->AddAction(new BMessage(B_REDO), target, ResourceToBitmap("REDO_ICON"),
-		B_TRANSLATE("Redo"), "", false);
+		B_TRANSLATE("Redo (Ctrl-Shift-Z)"), "", false);
 
 	toolbar->AddAction(new BMessage(M_SHOW_INFO), target, ResourceToBitmap("IMAGE_INFORMATION"),
-		B_TRANSLATE("Image information/properties"), "", false);
+		B_TRANSLATE("Image information/properties (I)"), "", false);
 
 	toolbar->GroupLayout()->AddItem(
 		BSpaceLayoutItem::CreateHorizontalStrut(B_USE_HALF_ITEM_SPACING));
@@ -71,9 +71,9 @@ CreateToolbar(BHandler* target)
 		BSpaceLayoutItem::CreateHorizontalStrut(B_USE_HALF_ITEM_SPACING));
 
 	toolbar->AddAction(new BMessage(M_PREV_IMAGE), target, ResourceToBitmap("PREV_IMAGE_ICON"),
-		B_TRANSLATE("Previous image"), "", true);
+		B_TRANSLATE("Previous image (Backspace)"), "", true);
 	toolbar->AddAction(new BMessage(M_NEXT_IMAGE), target, ResourceToBitmap("NEXT_IMAGE_ICON"),
-		B_TRANSLATE("Next image"), "", true);
+		B_TRANSLATE("Next image (Space)"), "", true);
 
 	toolbar->GroupLayout()->AddItem(
 		BSpaceLayoutItem::CreateHorizontalStrut(B_USE_HALF_ITEM_SPACING));
@@ -84,7 +84,7 @@ CreateToolbar(BHandler* target)
 	toolbar->AddGlue();
 	toolbar->AddSeparator();
 	toolbar->AddAction(new BMessage(M_SHOW_SETTINGS), target, ResourceToBitmap("SETTINGS_ICON"),
-		B_TRANSLATE("Settings" B_UTF8_ELLIPSIS), "", false);
+		B_TRANSLATE("Settings (P)" B_UTF8_ELLIPSIS), "", false);
 	toolbar->AddAction(new BMessage(M_SHOW_HELP), target, ResourceToBitmap("HELP_ICON"),
 		B_TRANSLATE("Help" B_UTF8_ELLIPSIS), "", false);
 

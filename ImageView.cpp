@@ -55,7 +55,6 @@ ImageView::SetBitmap(BBitmap* bitmap)
     fBitmap = bitmap;
 	fOffset = BPoint(0,0);
 	fZoom = 1.0f;
-	//fScaleMode = SCALE_FIT_WINDOW;
 
     Invalidate();
 }
@@ -66,6 +65,7 @@ ImageView::SetScaleMode(ScaleMode mode)
 	fScaleMode = mode;
 	if (mode == SCALE_FIT_WINDOW)
         fOffset = BPoint(0, 0);
+	_ClampOffset();
 
 	if (Window())
 		Window()->PostMessage('stat');
@@ -99,14 +99,50 @@ ImageView::Draw(BRect)
     float viewHeight = viewBounds.Height() + 1;
 
     // --- unified zoom ---
-    float zoom;
-    if (fScaleMode == SCALE_FIT_WINDOW) {
-        float scaleX = viewWidth / bitmapWidth;
-        float scaleY = viewHeight / bitmapHeight;
-        zoom = std::min(scaleX, scaleY);
-    } else {
-        zoom = fZoom;
-    }
+    float scaleX = viewWidth / bitmapWidth;
+	float scaleY = viewHeight / bitmapHeight;
+
+	float zoom = fZoom;
+
+	switch (fScaleMode) {
+
+		case SCALE_FIT_WINDOW:
+			zoom = std::min(scaleX, scaleY);
+			break;
+
+		case SCALE_FIT_WIDTH:
+			zoom = scaleX;
+			break;
+
+		case SCALE_FIT_HEIGHT:
+			zoom = scaleY;
+			break;
+
+		case SCALE_FIT_LARGE_ONLY:
+			if (bitmapWidth > viewWidth || bitmapHeight > viewHeight)
+				zoom = std::min(scaleX, scaleY);
+			else
+				zoom = 1.0f;
+			break;
+		/*
+		case SCALE_FIT_SMALL_ONLY:
+			if (bitmapWidth < viewWidth && bitmapHeight < viewHeight)
+				zoom = std::min(scaleX, scaleY);
+			else
+				zoom = 1.0f;
+			break;
+
+
+		case SCALE_FILL_WINDOW:
+			// fills entire view, may crop
+			zoom = std::max(scaleX, scaleY);
+			break;
+*/
+		case SCALE_ORIGINAL:
+		default:
+			zoom = fZoom;
+			break;
+	}
 
     float drawWidth = bitmapWidth * zoom;
     float drawHeight = bitmapHeight * zoom;
@@ -139,6 +175,21 @@ ImageView::FrameResized(float width, float height)
 
 void ImageView::KeyDown(const char* bytes, int32 numBytes)
 {
+
+	uint32 mods = modifiers();
+
+    if (mods & B_CONTROL_KEY) {
+        switch (bytes[0]) {
+            case B_HOME:
+                Window()->PostMessage(M_FIRST_IMAGE);
+                return;
+
+            case B_END:
+                Window()->PostMessage(M_LAST_IMAGE);
+                return;
+        }
+    }
+
     if (numBytes == 1) {
         switch (bytes[0]) {
             case B_ESCAPE:
@@ -153,18 +204,23 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
 				return;
             case 'f':
             case 'F':
-                // toggle scale mode
-                if (fScaleMode == SCALE_FIT_WINDOW)
-                    SetScaleMode(SCALE_ORIGINAL);
-                else
-                    SetScaleMode(SCALE_FIT_WINDOW);
+                {
+				switch (fScaleMode) {
+					case SCALE_FIT_WINDOW:   SetScaleMode(SCALE_FIT_WIDTH); break;
+					case SCALE_FIT_WIDTH:    SetScaleMode(SCALE_FIT_HEIGHT); break;
+					case SCALE_FIT_HEIGHT:   SetScaleMode(SCALE_ORIGINAL); break;
+					case SCALE_ORIGINAL:     SetScaleMode(SCALE_FIT_LARGE_ONLY); break;
+					default:                SetScaleMode(SCALE_FIT_WINDOW); break;
+				}
+			}
                 return;
 			case B_RIGHT_ARROW:
+			case B_SPACE:
 				if (Window())
 					Window()->PostMessage('next');
 				return;
-
 			case B_LEFT_ARROW:
+			case B_BACKSPACE:
 				if (Window())
 					Window()->PostMessage('prev');
 				return;
@@ -682,23 +738,48 @@ void ImageView::MouseUp(BPoint)
 
 void ImageView::MouseMoved(BPoint where, uint32, const BMessage*)
 {
-	if (!fDragging)
-		return;
+    if (!fDragging)
+        return;
 
-	if (fScaleMode == SCALE_FIT_WINDOW)
-		return;
+    float dx = where.x - fLastMouse.x;
+    float dy = where.y - fLastMouse.y;
 
-	float dx = where.x - fLastMouse.x;
-	float dy = where.y - fLastMouse.y;
+    switch (fScaleMode) {
 
-	fOffset.x += dx;
-	fOffset.y += dy;
+        case SCALE_ORIGINAL:
+            // Free panning
+            fOffset.x += dx;
+            fOffset.y += dy;
+            break;
 
-	_ClampOffset();
+        case SCALE_FIT_WIDTH:
+            // Width is fixed → only vertical panning
+            fOffset.y += dy;
+            break;
 
-	fLastMouse = where;
+        case SCALE_FIT_HEIGHT:
+            // Height is fixed → only horizontal panning
+            fOffset.x += dx;
+            break;
 
-	Invalidate();
+        case SCALE_FIT_WINDOW:
+        case SCALE_FIT_LARGE_ONLY:
+            // Fully constrained → no panning
+            return;
+
+/*        case SCALE_FILL_WINDOW:
+            // Optional: allow both directions (image is cropped)
+            fOffset.x += dx;
+            fOffset.y += dy;
+            break; */
+
+        default:
+            break;
+    }
+
+    _ClampOffset();
+    fLastMouse = where;
+    Invalidate();
 }
 
 
@@ -708,6 +789,7 @@ static float _Clamp(float v, float min, float max)
     if (v > max) return max;
     return v;
 }
+
 
 void ImageView::_ClampOffset()
 {
@@ -722,34 +804,93 @@ void ImageView::_ClampOffset()
     float bmpW = fBitmap->Bounds().Width() + 1;
     float bmpH = fBitmap->Bounds().Height() + 1;
 
+    float scaleX = viewW / bmpW;
+    float scaleY = viewH / bmpH;
+
     float zoom;
-    if (fScaleMode == SCALE_FIT_WINDOW) {
-        float scaleX = viewW / bmpW;
-        float scaleY = viewH / bmpH;
-        zoom = std::min(scaleX, scaleY);
-    } else {
-        zoom = fZoom;
+
+    switch (fScaleMode) {
+
+        case SCALE_FIT_WINDOW:
+            zoom = std::min(scaleX, scaleY);
+            break;
+
+        case SCALE_FIT_WIDTH:
+            zoom = scaleX;
+            break;
+
+        case SCALE_FIT_HEIGHT:
+            zoom = scaleY;
+            break;
+
+        case SCALE_FIT_LARGE_ONLY:
+            if (bmpW > viewW || bmpH > viewH)
+                zoom = std::min(scaleX, scaleY);
+            else
+                zoom = 1.0f;
+            break;
+
+		/*
+        case SCALE_FIT_SMALL_ONLY:
+            if (bmpW < viewW && bmpH < viewH)
+                zoom = std::min(scaleX, scaleY);
+            else
+                zoom = 1.0f;
+            break;
+
+        case SCALE_FILL_WINDOW:
+            zoom = std::max(scaleX, scaleY);
+            break;
+			*/
+
+        case SCALE_ORIGINAL:
+        default:
+            zoom = fZoom;
+            break;
     }
 
     float drawW = bmpW * zoom;
     float drawH = bmpH * zoom;
 
-    // --- Horizontal ---
-    if (drawW <= viewW) {
-        // Image smaller than view → center
-        fOffset.x = 0;
-    } else {
-        float maxOffsetX = (drawW - viewW) / 2;
-        fOffset.x = _Clamp(fOffset.x, -maxOffsetX, maxOffsetX);
+    float maxOffsetX = std::max(0.0f, (drawW - viewW) / 2.0f);
+    float maxOffsetY = std::max(0.0f, (drawH - viewH) / 2.0f);
+
+    switch (fScaleMode) {
+
+        case SCALE_FIT_WINDOW:
+        case SCALE_FIT_LARGE_ONLY:
+        //case SCALE_FIT_SMALL_ONLY:
+            // fully centered, no panning
+            fOffset.Set(0, 0);
+            break;
+
+        case SCALE_FIT_WIDTH:
+            // horizontal locked
+            fOffset.x = 0;
+            fOffset.y = _Clamp(fOffset.y, -maxOffsetY, maxOffsetY);
+            break;
+
+        case SCALE_FIT_HEIGHT:
+            // vertical locked
+            fOffset.y = 0;
+            fOffset.x = _Clamp(fOffset.x, -maxOffsetX, maxOffsetX);
+            break;
+
+        //case SCALE_FILL_WINDOW:
+        case SCALE_ORIGINAL:
+        default:
+            // free panning, but clamped
+            fOffset.x = _Clamp(fOffset.x, -maxOffsetX, maxOffsetX);
+            fOffset.y = _Clamp(fOffset.y, -maxOffsetY, maxOffsetY);
+            break;
     }
 
-    // --- Vertical ---
-    if (drawH <= viewH) {
+    // Extra safety: if image smaller than view in a dimension → lock it
+    if (drawW <= viewW)
+        fOffset.x = 0;
+
+    if (drawH <= viewH)
         fOffset.y = 0;
-    } else {
-        float maxOffsetY = (drawH - viewH) / 2;
-        fOffset.y = _Clamp(fOffset.y, -maxOffsetY, maxOffsetY);
-    }
 }
 
 BBitmap* ImageView::Bitmap() const
