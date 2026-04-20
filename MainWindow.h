@@ -25,6 +25,8 @@ public:
 	virtual void			MessageReceived(BMessage* msg);
 	void 					MenusBeginning();
 	void					_ToggleScaleMode();
+	bool					closeOnEscape() { return fCloseOnEscape; }
+	int						undoSteps() { return fUndoSteps; }
 
 private:
 			BMenuBar*		_BuildMenu();
@@ -60,9 +62,12 @@ private:
 			// settings
 			BWindow*		fSettingsWindow;
 			bool			fCloseOnEscape;
+			int32			fUndoSteps;
 			bool			_AlwaysOnTop() {return Feel() == B_FLOATING_ALL_WINDOW_FEEL;};
 
 			// menu items
+			BMenuItem*		fUndoMenuItem;
+			BMenuItem*		fRedoMenuItem;
 			BMenuItem*		fMRotate90CW;
 			BMenuItem*		fMRotate90CCW;
 			BMenuItem* 		fMFlipVertical;

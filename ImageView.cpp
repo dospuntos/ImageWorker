@@ -7,6 +7,7 @@
 #include "Constants.h"
 #include <Window.h>
 #include <Cursor.h>
+#include <cstdio>
 
 ImageView::ImageView()
     : BView("image_view", B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE | B_NAVIGABLE),
@@ -18,6 +19,8 @@ ImageView::ImageView()
 {
     SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 	float fZoom = 1.0f;
+	int32 fHistoryIndex = -1;
+	int32 fMaxHistorySteps = 10;
 	SetMouseEventMask(B_POINTER_EVENTS, B_LOCK_WINDOW_FOCUS);
 }
 
@@ -129,8 +132,8 @@ ImageView::FrameResized(float width, float height)
 	_ClampOffset();
 	Invalidate(Bounds());
 
-	if (Window())
-        Window()->PostMessage('stat'); // update status
+    if (Window())
+		Window()->PostMessage('stat'); // update status
 }
 
 
@@ -139,8 +142,8 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
     if (numBytes == 1) {
         switch (bytes[0]) {
             case B_ESCAPE:
-                if (Window())
-                    Window()->PostMessage(B_QUIT_REQUESTED);
+				if (Window())
+					Window()->PostMessage(B_QUIT_REQUESTED);
                 return;
 
 			case 'o':
@@ -157,11 +160,13 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
                     SetScaleMode(SCALE_FIT);
                 return;
 			case B_RIGHT_ARROW:
-				Window()->PostMessage('next');
+				if (Window())
+					Window()->PostMessage('next');
 				return;
 
 			case B_LEFT_ARROW:
-				Window()->PostMessage('prev');
+				if (Window())
+					Window()->PostMessage('prev');
 				return;
 			case B_DELETE:
 				if (Window())
@@ -184,13 +189,12 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
 			case '-':
 				ZoomOut();
 				return;
+
 			case 'd':
 			case 'D':
-			{
-			if (Window())
-				Window()->PostMessage(M_CLEAR_IMAGE);
-			return;
-			}
+				if (Window())
+					Window()->PostMessage(M_CLEAR_IMAGE);
+				return;
 
 			case 'h':
 			case 'H':
@@ -204,18 +208,15 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
 
 			case 'i':
 			case 'I':
-			{
-			if (Window())
-				Window()->PostMessage(M_SHOW_INFO);
-			return;
-			}
+				if (Window())
+					Window()->PostMessage(M_SHOW_INFO);
+				return;
+
 			case 'p':
 			case 'P':
-			{
-			if (Window())
-				Window()->PostMessage(M_SHOW_SETTINGS);
-			return;
-			}
+				if (Window())
+					Window()->PostMessage(M_SHOW_SETTINGS);
+				return;
         }
     }
 
@@ -233,6 +234,7 @@ void ImageView::Clear()
 		fZoom = 1.0f;
 		fScaleMode = SCALE_FIT;
 
+		ClearHistory();
 		Invalidate();
 	}
 }
@@ -271,6 +273,7 @@ void ImageView::Rotate90CW()
     }
 
     SetBitmap(rotated);
+	SaveState();
 	if (Window())
 		Window()->PostMessage('stat');
 }
@@ -309,6 +312,7 @@ void ImageView::Rotate90CCW()
     }
 
     SetBitmap(rotated);
+	SaveState();
 	if (Window())
 		Window()->PostMessage('stat');
 }
@@ -335,8 +339,8 @@ void ImageView::FlipHorizontal()
         }
     }
 
+	SaveState();
     Invalidate();
-
     if (Window())
         Window()->PostMessage('stat');
 }
@@ -364,8 +368,8 @@ void ImageView::FlipVertical()
         }
     }
 
+	SaveState();
     Invalidate();
-
     if (Window())
         Window()->PostMessage('stat');
 }
@@ -406,8 +410,8 @@ void ImageView::ConvertToGrayscale()
         }
     }
 
+	SaveState();
     Invalidate();
-
     if (Window())
         Window()->PostMessage('stat');
 }
@@ -447,8 +451,8 @@ void ImageView::SwapColors(const int order[4])
         }
     }
 
+	SaveState();
     Invalidate();
-
     if (Window())
         Window()->PostMessage('stat');
 }
@@ -483,8 +487,8 @@ void ImageView::InvertColors()
         }
     }
 
+	SaveState();
     Invalidate();
-
     if (Window())
         Window()->PostMessage('stat');
 }
@@ -535,8 +539,8 @@ void ImageView::IsolateChannel(ColorChannel channel, bool replicateToAll)
         }
     }
 
+	SaveState();
     Invalidate();
-
     if (Window())
         Window()->PostMessage('stat');
 }
@@ -751,4 +755,89 @@ void ImageView::_ClampOffset()
 BBitmap* ImageView::Bitmap() const
 {
 	return fBitmap;
+}
+
+BBitmap* ImageView::CloneBitmap(const BBitmap* source)
+{
+	if (!source)
+		return nullptr;
+
+	BBitmap* copy = new BBitmap(source->Bounds(), source->ColorSpace());
+
+	if (!copy->IsValid()) {
+		delete copy;
+		return nullptr;
+	}
+
+	memcpy(copy->Bits(), source->Bits(), source->BitsLength());
+
+	return copy;
+}
+
+
+void ImageView::SaveState()
+{
+    if (!fBitmap)
+        return;
+
+    // Remove redo states
+    while ((int32)fHistory.size() > fHistoryIndex + 1) {
+        delete fHistory.back();
+        fHistory.pop_back();
+    }
+
+    // Clone current bitmap
+    BBitmap* copy = CloneBitmap(fBitmap);
+    if (!copy)
+        return;
+
+    fHistory.push_back(copy);
+    fHistoryIndex++;
+
+    // Enforce max steps
+
+    if ((int32)fHistory.size() > fMaxHistorySteps) {
+        delete fHistory.front();
+        fHistory.erase(fHistory.begin());
+        fHistoryIndex--;
+    }
+	if (Window())
+		Window()->PostMessage('stat');
+}
+
+
+void ImageView::Undo()
+{
+    if (fHistoryIndex <= 0)
+        return;
+
+	fHistoryIndex--;
+
+	SetBitmap(CloneBitmap(fHistory[fHistoryIndex]));
+    Invalidate();
+	if (Window())
+		Window()->PostMessage('stat');
+}
+
+void ImageView::Redo()
+{
+    if (fHistoryIndex >= (int32)fHistory.size() - 1)
+        return;
+
+    fHistoryIndex++;
+
+    SetBitmap(CloneBitmap(fHistory[fHistoryIndex]));
+    Invalidate();
+	if (Window())
+		Window()->PostMessage('stat');
+}
+
+
+void ImageView::ClearHistory()
+{
+    for (auto bitmap : fHistory)
+        delete bitmap;
+
+    fHistory.clear();
+    fHistoryIndex = -1;
 }

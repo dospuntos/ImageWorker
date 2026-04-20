@@ -46,14 +46,15 @@
 MainWindow::MainWindow()
 	:
 	BWindow(BRect(100, 100, 500, 400), B_TRANSLATE_SYSTEM_NAME(kApplicationName), B_TITLED_WINDOW,
-		B_ASYNCHRONOUS_CONTROLS | B_QUIT_ON_WINDOW_CLOSE)
+		B_ASYNCHRONOUS_CONTROLS | B_QUIT_ON_WINDOW_CLOSE),
+		fHasImage(false),
+		fUndoSteps(5),
+		fSettingsWindow(nullptr)
 {
 	BMenuBar* menuBar = _BuildMenu();
 	fImageView = new ImageView();
 	fStatusView = new StatusView();
 	fToolBar = CreateToolbar(this);
-	fSettingsWindow = nullptr;
-	fHasImage = false;
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
 		.Add(menuBar)
@@ -66,7 +67,7 @@ MainWindow::MainWindow()
 			.Add(fStatusView)
 		.End();
 
-	fStatusView->SetExplicitMaxSize(BSize(B_SIZE_UNLIMITED, B_SIZE_UNSET));
+	//fStatusView->SetExplicitMaxSize(BSize(B_SIZE_UNLIMITED, B_SIZE_UNSET));
 	fStatusView->SetExplicitMinSize(BSize(0, 20));
 
 	BMessenger messenger(this);
@@ -92,6 +93,10 @@ MainWindow::MainWindow()
 		SetFeel(onTop ? B_FLOATING_ALL_WINDOW_FEEL : B_NORMAL_WINDOW_FEEL);
 		fMAlwaysOnTop->SetMarked(onTop);
 	}
+
+	int32 undoSteps;
+	if (settings.FindInt32("undoSteps", &undoSteps) == B_OK)
+		fUndoSteps = undoSteps;
 
 	MoveOnScreen();
 	_UpdateStatus();
@@ -212,6 +217,12 @@ MainWindow::MessageReceived(BMessage* message)
 			fSavePanel->Show();
 		} break;
 
+		case B_UNDO:
+			fImageView->Undo();
+			break;
+		case B_REDO:
+			fImageView->Redo();
+			break;
 		case M_FIT_TO_WINDOW:
 		{
 			fImageView->SetScaleMode(SCALE_FIT);
@@ -376,7 +387,7 @@ MainWindow::MessageReceived(BMessage* message)
 		{
 			if (!fSettingsWindow) {
 				fSettingsWindow
-					= new SettingsWindow(fCloseOnEscape);
+					= new SettingsWindow(fCloseOnEscape, fUndoSteps);
 				fSettingsWindow->CenterIn(Frame());
 				fSettingsWindow->Show();
 			} else {
@@ -388,11 +399,14 @@ MainWindow::MessageReceived(BMessage* message)
 
 		case M_APPLY_SETTINGS:
 		{
-			bool value;
-			if (message->FindBool("value", &value) == B_OK) {
-				fCloseOnEscape = value;
-				_SaveSettings();
-			}
+			bool flag;
+			int32 num;
+			if (message->FindBool("value", &flag) == B_OK)
+				fCloseOnEscape = flag;
+			if (message->FindInt32("undoSteps", &num) == B_OK)
+				fUndoSteps = num;
+
+			_SaveSettings();
 		} break;
 
 		case M_MINIMIZE_WINDOW:
@@ -471,6 +485,11 @@ MainWindow::_BuildMenu()
 
 	menu->AddSeparatorItem();
 
+	fUndoMenuItem = new BMenuItem(B_TRANSLATE("Undo"), new BMessage(B_UNDO), 'Z');
+	menu->AddItem(fUndoMenuItem);
+
+	fRedoMenuItem = new BMenuItem(B_TRANSLATE("Redo"), new BMessage(B_REDO), 'Z', B_SHIFT_KEY);
+	menu->AddItem(fRedoMenuItem);
 
 	menuBar->AddItem(menu);
 
@@ -610,6 +629,7 @@ MainWindow::_SaveSettings()
 		status = settings.AddRef("lastSaveDir", &fLastSaveDir);
 	settings.AddBool("closeOnEscape", fCloseOnEscape);
 	settings.AddBool("alwaysOnTop",_AlwaysOnTop());
+	settings.AddInt32("undoSteps", fUndoSteps);
 
 	if (status == B_OK)
 		status = settings.Flatten(&file);
@@ -630,12 +650,15 @@ MainWindow::MenusBeginning()
 	fMSwapColors->SetEnabled(fHasImage);
 	fMInvertColors->SetEnabled(fHasImage);
 	fMShowChannel->SetEnabled(fHasImage);
+	fUndoMenuItem->SetEnabled(fImageView->CanUndo());
+	fRedoMenuItem->SetEnabled(fImageView->CanRedo());
 }
 
 
 void
 MainWindow::_LoadImage(const entry_ref& ref)
 {
+	fImageView->ClearHistory();
 	bigtime_t start = system_time();
 	BString statusMsg;
 	BBitmap* bitmap = BTranslationUtils::GetBitmap(&ref);
@@ -650,6 +673,7 @@ MainWindow::_LoadImage(const entry_ref& ref)
 	fCurrentRef = ref;
 	fImageView->SetBitmap(bitmap);
 	fHasImage = true;
+	fImageView->SaveState();
 
 	BEntry entry(&ref);
 	BEntry parent;
@@ -765,6 +789,7 @@ void MainWindow::DeleteCurrentImage()
 		"Cancel", "Delete", nullptr,
 		B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_WARNING_ALERT);
 	alert->SetShortcut(0, B_ESCAPE);
+	alert->SetDefaultButton(0);
 
 	if (alert->Go() != 1)
 		return;
@@ -789,7 +814,7 @@ void MainWindow::DeleteCurrentImage()
     if (fFileList.empty()) {
         // No images left
         fCurrentIndex = -1;
-        fImageView->SetBitmap(nullptr);
+        PostMessage(M_CLEAR_IMAGE);
         return;
     }
 
@@ -805,7 +830,7 @@ void MainWindow::DeleteCurrentImage()
 void MainWindow::_UpdateStatus()
 {
 	// Update title bar
-	BString name = (fCurrentRef.name) ? fCurrentRef.name : (fHasImage ? "(unnamed)" : "(No file)");
+	BString name = (fCurrentRef.name) ? fCurrentRef.name : (fHasImage ? "(unnamed)" : "(No image)");
 	name << " - " << kApplicationName;
 	SetTitle(name);
 	// Update status bar
@@ -818,8 +843,8 @@ void MainWindow::_UpdateStatus()
 	fToolBar->SetActionEnabled(M_NEXT_IMAGE, fHasImage);
 	fToolBar->SetActionEnabled(M_DELETE_IMAGE, fHasImage);
 	fToolBar->SetActionEnabled(M_SHOW_INFO, fHasImage);
-	fToolBar->SetActionEnabled(B_UNDO, fHasImage);
-	fToolBar->SetActionEnabled(B_REDO, fHasImage);
+	fToolBar->SetActionEnabled(B_UNDO, fHasImage && fImageView->CanUndo());
+	fToolBar->SetActionEnabled(B_REDO, fHasImage && fImageView->CanRedo());
 }
 
 

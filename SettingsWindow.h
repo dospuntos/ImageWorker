@@ -7,18 +7,20 @@
 #define SETTINGS_WINDOW_H
 
 #include <Window.h>
+#include <private/interface/Spinner.h>
 
 class BCheckBox;
 
 class SettingsWindow : public BWindow {
 public:
-    SettingsWindow(bool closeOnEscape);
+    SettingsWindow(bool closeOnEscape, int32 undoSteps);
 
     virtual void MessageReceived(BMessage* message);
 	bool QuitRequested();
 
 private:
     BCheckBox* fCloseOnEscape;
+	BSpinner* fUndoSteps;
 };
 
 #endif // SETTINGS_WINDOW_H

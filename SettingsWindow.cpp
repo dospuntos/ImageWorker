@@ -13,8 +13,7 @@
 #include <Button.h>
 #include <Message.h>
 
-
-SettingsWindow::SettingsWindow(bool closeOnEscape)
+SettingsWindow::SettingsWindow(bool closeOnEscape, int undoSteps)
     :
     BWindow(BRect(200, 200, 500, 400), "Settings", B_TITLED_WINDOW,
 		B_NOT_RESIZABLE | B_NOT_MINIMIZABLE | B_NOT_ZOOMABLE | B_AUTO_UPDATE_SIZE_LIMITS
@@ -23,8 +22,12 @@ SettingsWindow::SettingsWindow(bool closeOnEscape)
     fCloseOnEscape = new BCheckBox("closeOnEscape",
         "Close on Escape",
         new BMessage(M_APPLY_SETTINGS));
-
     fCloseOnEscape->SetValue(closeOnEscape);
+
+	fUndoSteps
+		= new BSpinner("UndoSteps", "Undo steps:", new BMessage(M_APPLY_SETTINGS));
+	fUndoSteps->SetMinValue(0);
+	fUndoSteps->SetValue(undoSteps);
 
     BButton* closeBtn = new BButton("close", "Close",
         new BMessage(B_QUIT_REQUESTED));
@@ -32,6 +35,7 @@ SettingsWindow::SettingsWindow(bool closeOnEscape)
     BLayoutBuilder::Group<>(this, B_VERTICAL, 10)
         .SetInsets(10, 10, 10, 10)
         .Add(fCloseOnEscape)
+		.Add(fUndoSteps)
         .AddGlue()
         .AddGroup(B_HORIZONTAL)
             .AddGlue()
@@ -48,7 +52,9 @@ void SettingsWindow::MessageReceived(BMessage* message)
         {
             BMessage msg(M_APPLY_SETTINGS);
             msg.AddBool("value", fCloseOnEscape->Value() == B_CONTROL_ON);
+			msg.AddInt32("undoSteps", fUndoSteps->Value());
 
+			PostMessage(M_CLOSE_SETTINGS);
             be_app->WindowAt(0)->PostMessage(&msg);
             break;
         }
@@ -64,8 +70,9 @@ void SettingsWindow::MessageReceived(BMessage* message)
 bool
 SettingsWindow::QuitRequested()
 {
-	if (!IsHidden())
+	if (!IsHidden()) {
 		Hide();
+	}
 	return false;
 }
 

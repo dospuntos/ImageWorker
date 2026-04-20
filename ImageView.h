@@ -7,6 +7,7 @@
 
 #include <View.h>
 #include <Bitmap.h>
+#include <vector>
 
 enum ScaleMode {
 	SCALE_FIT,
@@ -37,6 +38,13 @@ public:
 	virtual void MouseWheelChanged(BPoint where, float x, float y);
 	BPoint fOffset; // Image offset from center
 
+	void SaveState();
+	void Undo();
+	void Redo();
+	bool CanUndo() const { return fHistoryIndex > 0; }
+	bool CanRedo() const { return fHistoryIndex < (int32)fHistory.size() - 1; }
+	void ClearHistory();
+
 	virtual void MouseDown(BPoint where);
 	virtual void MouseUp(BPoint where);
 	virtual void MouseMoved(BPoint where, uint32 code, const BMessage* dragMessage);
@@ -66,6 +74,12 @@ public:
 private:
     BBitmap* fBitmap;
 	ScaleMode fScaleMode;
+
+	BBitmap* CloneBitmap(const BBitmap* source);
+	std::vector<BBitmap*> fHistory;
+	int32 fHistoryIndex = -1;
+	int32 fMaxHistorySteps = 10;
+
 };
 
 #endif // IMAGE_VIEW_H
