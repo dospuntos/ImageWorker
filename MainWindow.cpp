@@ -6,37 +6,34 @@
 
 #include "MainWindow.h"
 #include "Constants.h"
+#include "IconMenuItem.h"
 #include "SettingsWindow.h"
 #include "Utils.h"
-#include "IconMenuItem.h"
 
 #include <Alert.h>
 #include <Application.h>
+#include <BitmapStream.h>
 #include <Catalog.h>
+#include <Clipboard.h>
 #include <Directory.h>
 #include <Entry.h>
-#include <Path.h>
-#include <algorithm>
-#include <String.h>
 #include <File.h>
 #include <FindDirectory.h>
 #include <LayoutBuilder.h>
 #include <Menu.h>
 #include <MenuBar.h>
-#include <Path.h>
-#include <Roster.h>
-#include <TranslationUtils.h>
-#include <TranslatorRoster.h>
-#include <TranslationKit.h>
-#include <BitmapStream.h>
-#include <Clipboard.h>
-#include <RecentItems.h>
-#include <View.h>
-#include <SeparatorView.h>
+#include <Node.h>
 #include <NodeInfo.h>
 #include <Path.h>
-#include <Entry.h>
-#include <Node.h>
+#include <RecentItems.h>
+#include <Roster.h>
+#include <SeparatorView.h>
+#include <String.h>
+#include <TranslationKit.h>
+#include <TranslationUtils.h>
+#include <TranslatorRoster.h>
+#include <View.h>
+#include <algorithm>
 #include <stdlib.h>
 
 #include <cstdio>
@@ -44,14 +41,15 @@
 #undef B_TRANSLATION_CONTEXT
 #define B_TRANSLATION_CONTEXT "Window"
 
+
 MainWindow::MainWindow()
 	:
 	BWindow(BRect(100, 100, 800, 600), B_TRANSLATE_SYSTEM_NAME(kApplicationName), B_TITLED_WINDOW,
 		B_ASYNCHRONOUS_CONTROLS | B_QUIT_ON_WINDOW_CLOSE),
-		fHasImage(false),
-		fUndoSteps(5),
-		fSettingsWindow(nullptr),
-		fInfoWindow(nullptr)
+	fHasImage(false),
+	fUndoSteps(5),
+	fSettingsWindow(nullptr),
+	fInfoWindow(nullptr)
 {
 	BMenuBar* menuBar = _BuildMenu();
 	fImageView = new ImageView();
@@ -67,7 +65,7 @@ MainWindow::MainWindow()
 		.AddGroup(B_HORIZONTAL)
 			.SetInsets(5, 3, 5, 3)
 			.Add(fStatusView)
-		.End();
+			.End();
 
 	BMessenger messenger(this);
 	fOpenPanel = new BFilePanel(B_OPEN_PANEL, &messenger, NULL, B_FILE_NODE, false);
@@ -80,7 +78,7 @@ MainWindow::MainWindow()
 	BRect frame;
 	if (settings.FindRect("main_window_rect", &frame) == B_OK) {
 		MoveTo(frame.LeftTop());
-		//ResizeTo(frame.Width(), frame.Height());
+		// ResizeTo(frame.Width(), frame.Height());
 	}
 
 	settings.FindRef("lastSaveDir", &fLastSaveDir);
@@ -156,13 +154,8 @@ MainWindow::MessageReceived(BMessage* message)
 				BBitmapStream stream(bitmap);
 
 				// Save as PNG for now
-				status_t result = BTranslatorRoster::Default()->Translate(
-					&stream,
-					NULL,
-					NULL,
-					&file,
-					B_PNG_FORMAT
-				);
+				status_t result = BTranslatorRoster::Default()->Translate(&stream, NULL, NULL,
+					&file, B_PNG_FORMAT);
 
 				stream.DetachBitmap(&bitmap);
 
@@ -211,9 +204,8 @@ MainWindow::MessageReceived(BMessage* message)
 			if (!fImageView->Bitmap())
 				break;
 
-			if (fCurrentRef.name) {
+			if (fCurrentRef.name)
 				fSavePanel->SetSaveText(fCurrentRef.name);
-			}
 
 			// Set directory
 			if (fLastSaveDir.name) {
@@ -358,8 +350,8 @@ MainWindow::MessageReceived(BMessage* message)
 				const void* buffer;
 				ssize_t size;
 
-				if (data->FindData("image/png", B_MIME_TYPE, &buffer, &size) == B_OK ||
-					data->FindData("image/jpeg", B_MIME_TYPE, &buffer, &size) == B_OK) {
+				if (data->FindData("image/png", B_MIME_TYPE, &buffer, &size) == B_OK
+					|| data->FindData("image/jpeg", B_MIME_TYPE, &buffer, &size) == B_OK) {
 
 					BMemoryIO stream(buffer, size);
 					bitmap = BTranslationUtils::GetBitmap(&stream);
@@ -395,8 +387,7 @@ MainWindow::MessageReceived(BMessage* message)
 		case M_SHOW_SETTINGS:
 		{
 			if (!fSettingsWindow) {
-				fSettingsWindow
-					= new SettingsWindow(fCloseOnEscape, fUndoSteps);
+				fSettingsWindow = new SettingsWindow(fCloseOnEscape, fUndoSteps);
 				fSettingsWindow->CenterIn(Frame());
 				fSettingsWindow->Show();
 			} else {
@@ -522,21 +513,25 @@ MainWindow::_BuildMenu()
 
 	menu->AddSeparatorItem();
 
-	fMRotate90CCW = new BMenuItem(B_TRANSLATE("Rotate left (counter-clockwise)"), new BMessage(M_ROTATE_90_CCW), 'L');
+	fMRotate90CCW = new BMenuItem(B_TRANSLATE("Rotate left (counter-clockwise)"),
+		new BMessage(M_ROTATE_90_CCW), 'L');
 	menu->AddItem(fMRotate90CCW);
 
-	fMRotate90CW = new BMenuItem(B_TRANSLATE("Rotate right (clockwise)"), new BMessage(M_ROTATE_90_CW), 'R');
+	fMRotate90CW
+		= new BMenuItem(B_TRANSLATE("Rotate right (clockwise)"), new BMessage(M_ROTATE_90_CW), 'R');
 	menu->AddItem(fMRotate90CW);
 
 	fMFlipVertical = new BMenuItem(B_TRANSLATE("Vertical flip"), new BMessage(M_FLIP_VERTICAL));
 	menu->AddItem(fMFlipVertical);
 
-	fMFlipHorizontal = new BMenuItem(B_TRANSLATE("Horizontal flip"), new BMessage(M_FLIP_HORIZONTAL));
+	fMFlipHorizontal
+		= new BMenuItem(B_TRANSLATE("Horizontal flip"), new BMessage(M_FLIP_HORIZONTAL));
 	menu->AddItem(fMFlipHorizontal);
 
 	menu->AddSeparatorItem();
 
-	fMConvertToGrayscale = new BMenuItem(B_TRANSLATE("Convert to grayscale"), new BMessage(M_CONVERT_TO_GRAYSCALE), 'G');
+	fMConvertToGrayscale = new BMenuItem(B_TRANSLATE("Convert to grayscale"),
+		new BMessage(M_CONVERT_TO_GRAYSCALE), 'G');
 	menu->AddItem(fMConvertToGrayscale);
 
 	// submenu 'Show channel'
@@ -549,7 +544,8 @@ MainWindow::_BuildMenu()
 	fMShowChannel->AddItem(item);
 	menu->AddItem(fMShowChannel);
 
-	fMInvertColors = new BMenuItem(B_TRANSLATE("Negative (invert colors)"), new BMessage(M_INVERT_COLORS));
+	fMInvertColors
+		= new BMenuItem(B_TRANSLATE("Negative (invert colors)"), new BMessage(M_INVERT_COLORS));
 	menu->AddItem(fMInvertColors);
 
 	menu->AddSeparatorItem();
@@ -593,10 +589,12 @@ MainWindow::_BuildMenu()
 	fMFit = new BMenuItem(B_TRANSLATE("Fit to window"), new BMessage(M_FIT_TO_WINDOW));
 	submenu->AddItem(fMFit);
 
-	fMFitLarge = new BMenuItem(B_TRANSLATE("Fit only big images to window"), new BMessage(M_FIT_LARGE_TO_WINDOW));
+	fMFitLarge = new BMenuItem(B_TRANSLATE("Fit only big images to window"),
+		new BMessage(M_FIT_LARGE_TO_WINDOW));
 	submenu->AddItem(fMFitLarge);
 
-	fMActualSize = new BMenuItem(B_TRANSLATE("Actual size (1:1)"), new BMessage(M_ACTUAL_SIZE), '1');
+	fMActualSize
+		= new BMenuItem(B_TRANSLATE("Actual size (1:1)"), new BMessage(M_ACTUAL_SIZE), '1');
 	submenu->AddItem(fMActualSize);
 
 	fMFitWidth = new BMenuItem(B_TRANSLATE("Fit width"), new BMessage(M_FIT_WIDTH));
@@ -679,7 +677,7 @@ MainWindow::_SaveSettings()
 	if (fLastSaveDir.device >= 0)
 		status = settings.AddRef("lastSaveDir", &fLastSaveDir);
 	settings.AddBool("closeOnEscape", fCloseOnEscape);
-	settings.AddBool("alwaysOnTop",_AlwaysOnTop());
+	settings.AddBool("alwaysOnTop", _AlwaysOnTop());
 	settings.AddInt32("undoSteps", fUndoSteps);
 	settings.AddInt32("scaleMode", fImageView->getScaleMode());
 
@@ -752,89 +750,95 @@ MainWindow::_LoadImage(const entry_ref& ref)
 }
 
 
-static bool _IsImageFile(const entry_ref& ref)
+static bool
+_IsImageFile(const entry_ref& ref)
 {
-    BNode node(&ref);
-    if (node.InitCheck() != B_OK)
-        return false;
+	BNode node(&ref);
+	if (node.InitCheck() != B_OK)
+		return false;
 
-    BNodeInfo nodeInfo(&node);
-    char mimeType[B_MIME_TYPE_LENGTH];
-    if (nodeInfo.GetType(mimeType) != B_OK)
-        return false;
+	BNodeInfo nodeInfo(&node);
+	char mimeType[B_MIME_TYPE_LENGTH];
+	if (nodeInfo.GetType(mimeType) != B_OK)
+		return false;
 
-    return strncmp(mimeType, "image/", 6) == 0;
+	return strncmp(mimeType, "image/", 6) == 0;
 }
 
 
-void MainWindow::_LoadDirectory(const entry_ref& ref)
+void
+MainWindow::_LoadDirectory(const entry_ref& ref)
 {
-    BEntry entry(&ref);
-    BDirectory dir;
+	BEntry entry(&ref);
+	BDirectory dir;
 
-    if (entry.GetParent(&dir) != B_OK)
-        return;
+	if (entry.GetParent(&dir) != B_OK)
+		return;
 
-    fFileList.clear();
+	fFileList.clear();
 
-    entry_ref current;
-    while (dir.GetNextRef(&current) == B_OK) {
-        if (_IsImageFile(current))
-            fFileList.push_back(current);
-    }
+	entry_ref current;
+	while (dir.GetNextRef(&current) == B_OK) {
+		if (_IsImageFile(current))
+			fFileList.push_back(current);
+	}
 
-    // sort alphabetically
-    std::sort(fFileList.begin(), fFileList.end(),
-        [](const entry_ref& a, const entry_ref& b) {
-            return BString(a.name) < BString(b.name);
-        });
+	// sort alphabetically
+	std::sort(fFileList.begin(), fFileList.end(),
+		[](const entry_ref& a, const entry_ref& b) { return BString(a.name) < BString(b.name); });
 
-    // find current index
-    fCurrentIndex = -1;
-    for (size_t i = 0; i < fFileList.size(); ++i) {
-        if (fFileList[i] == ref) {
-            fCurrentIndex = i;
-            break;
-        }
-    }
+	// find current index
+	fCurrentIndex = -1;
+	for (size_t i = 0; i < fFileList.size(); ++i) {
+		if (fFileList[i] == ref) {
+			fCurrentIndex = i;
+			break;
+		}
+	}
 }
 
 
-void MainWindow::_LoadImageAtIndex(int32 index)
+void
+MainWindow::_LoadImageAtIndex(int32 index)
 {
-    if (index < 0 || index >= (int32)fFileList.size())
-        return;
+	if (index < 0 || index >= (int32)fFileList.size())
+		return;
 
-    fCurrentIndex = index;
-    _LoadImage(fFileList[index]);
+	fCurrentIndex = index;
+	_LoadImage(fFileList[index]);
 }
 
 
-void MainWindow::NextImage()
+void
+MainWindow::NextImage()
 {
-    if (fFileList.empty())
-        return;
+	if (fFileList.empty())
+		return;
 
-    int32 next = fCurrentIndex + 1;
-    if (next >= (int32)fFileList.size())
-        next = 0; // wrap around
+	int32 next = fCurrentIndex + 1;
+	if (next >= (int32)fFileList.size())
+		next = 0; // wrap around
 
-    _LoadImageAtIndex(next);
+	_LoadImageAtIndex(next);
 }
 
-void MainWindow::PrevImage()
+
+void
+MainWindow::PrevImage()
 {
-    if (fFileList.empty())
-        return;
+	if (fFileList.empty())
+		return;
 
-    int32 prev = fCurrentIndex - 1;
-    if (prev < 0)
-        prev = fFileList.size() - 1; // wrap around
+	int32 prev = fCurrentIndex - 1;
+	if (prev < 0)
+		prev = fFileList.size() - 1; // wrap around
 
-    _LoadImageAtIndex(prev);
+	_LoadImageAtIndex(prev);
 }
 
-void MainWindow::FirstImage()
+
+void
+MainWindow::FirstImage()
 {
 	if (fFileList.empty())
 		return;
@@ -842,81 +846,81 @@ void MainWindow::FirstImage()
 	_LoadImageAtIndex(0);
 }
 
-void MainWindow::LastImage()
+
+void
+MainWindow::LastImage()
 {
 	if (fFileList.empty())
 		return;
 
-	_LoadImageAtIndex(fFileList.size() -1);
+	_LoadImageAtIndex(fFileList.size() - 1);
 }
 
 
-void MainWindow::RandomImage()
+void
+MainWindow::RandomImage()
 {
-    if (fFileList.empty())
-        return;
+	if (fFileList.empty())
+		return;
 
-    int32 index = rand() % fFileList.size();
-    _LoadImageAtIndex(index);
+	int32 index = rand() % fFileList.size();
+	_LoadImageAtIndex(index);
 }
 
 
-void MainWindow::DeleteCurrentImage()
+void
+MainWindow::DeleteCurrentImage()
 {
-	BAlert* alert = new BAlert("Confirm",
-		"Delete this image permanently?",
-		"Cancel", "Delete", nullptr,
-		B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_WARNING_ALERT);
+	BAlert* alert = new BAlert("Confirm", "Delete this image permanently?", "Cancel", "Delete",
+		nullptr, B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_WARNING_ALERT);
 	alert->SetShortcut(0, B_ESCAPE);
 	alert->SetDefaultButton(0);
 
 	if (alert->Go() != 1)
 		return;
 
-    if (fFileList.empty() || fCurrentIndex < 0)
-        return;
+	if (fFileList.empty() || fCurrentIndex < 0)
+		return;
 
-    entry_ref ref = fFileList[fCurrentIndex];
-    BEntry entry(&ref);
+	entry_ref ref = fFileList[fCurrentIndex];
+	BEntry entry(&ref);
 
-    // Try move to Trash (safer)
-    status_t result = entry.Remove();
+	// Try move to Trash (safer)
+	status_t result = entry.Remove();
 
-    if (result != B_OK) {
-        printf("Failed to delete image\n");
-        return;
-    }
+	if (result != B_OK) {
+		printf("Failed to delete image\n");
+		return;
+	}
 
-    // Remove from list
-    fFileList.erase(fFileList.begin() + fCurrentIndex);
+	// Remove from list
+	fFileList.erase(fFileList.begin() + fCurrentIndex);
 
-    if (fFileList.empty()) {
-        // No images left
-        fCurrentIndex = -1;
-        PostMessage(M_CLEAR_IMAGE);
-        return;
-    }
+	if (fFileList.empty()) {
+		// No images left
+		fCurrentIndex = -1;
+		PostMessage(M_CLEAR_IMAGE);
+		return;
+	}
 
-    // Stay at same index if possible
-    if (fCurrentIndex >= (int32)fFileList.size())
-        fCurrentIndex = fFileList.size() - 1;
+	// Stay at same index if possible
+	if (fCurrentIndex >= (int32)fFileList.size())
+		fCurrentIndex = fFileList.size() - 1;
 
-    _LoadImageAtIndex(fCurrentIndex);
+	_LoadImageAtIndex(fCurrentIndex);
 	_UpdateStatus();
 }
 
 
-void MainWindow::_UpdateStatus()
+void
+MainWindow::_UpdateStatus()
 {
 	// Update title bar
 	BString name = (fCurrentRef.name) ? fCurrentRef.name : (fHasImage ? "(unnamed)" : "(No image)");
 	name << " - " << kApplicationName;
 	SetTitle(name);
 	// Update status bar
-    fStatusView->Update(&fCurrentRef,
-                        fImageView,
-                        fCurrentIndex,
-                        fFileList.size());
+	fStatusView->Update(&fCurrentRef, fImageView, fCurrentIndex, fFileList.size());
 	// Update toolbar
 	fToolBar->SetActionEnabled(M_SAVE_FILE, fHasImage);
 	fToolBar->SetActionEnabled(M_PREV_IMAGE, fHasImage);
@@ -928,59 +932,60 @@ void MainWindow::_UpdateStatus()
 }
 
 
-void MainWindow::_ShowImageInfo()
+void
+MainWindow::_ShowImageInfo()
 {
-    if (!fInfoWindow)
-        fInfoWindow = new InfoWindow();
+	if (!fInfoWindow)
+		fInfoWindow = new InfoWindow();
 
-    BMessage msg(MSG_SET_INFO);
+	BMessage msg(MSG_SET_INFO);
 
-    auto AddSection = [&](const char* title) {
-        BMessage item;
-        item.AddString("type", "section");
-        item.AddString("title", title);
-        msg.AddMessage("item", &item);
-    };
+	auto AddSection = [&](const char* title) {
+		BMessage item;
+		item.AddString("type", "section");
+		item.AddString("title", title);
+		msg.AddMessage("item", &item);
+	};
 
-    auto AddRow = [&](const char* label, const BString& value) {
-        BMessage item;
-        item.AddString("type", "row");
-        item.AddString("label", label);
-        item.AddString("value", value);
-        msg.AddMessage("item", &item);
-    };
+	auto AddRow = [&](const char* label, const BString& value) {
+		BMessage item;
+		item.AddString("type", "row");
+		item.AddString("label", label);
+		item.AddString("value", value);
+		msg.AddMessage("item", &item);
+	};
 
-    BBitmap* bitmap = fImageView->Bitmap();
+	BBitmap* bitmap = fImageView->Bitmap();
 
-    if (!bitmap) {
-        AddRow("Status:", "No image loaded");
-    } else {
+	if (!bitmap) {
+		AddRow("Status:", "No image loaded");
+	} else {
 
-        // File
-        if (fCurrentRef.name) {
-            AddSection("File");
+		// File
+		if (fCurrentRef.name) {
+			AddSection("File");
 
-            AddRow("File name:", fCurrentRef.name);
+			AddRow("File name:", fCurrentRef.name);
 
-            BEntry entry(&fCurrentRef);
-            BPath path;
-            entry.GetPath(&path);
+			BEntry entry(&fCurrentRef);
+			BPath path;
+			entry.GetPath(&path);
 
-            BEntry parent;
-            if (entry.GetParent(&parent) == B_OK) {
-                BPath parentPath;
-                parent.GetPath(&parentPath);
-                AddRow("Folder:", parentPath.Path());
-            }
+			BEntry parent;
+			if (entry.GetParent(&parent) == B_OK) {
+				BPath parentPath;
+				parent.GetPath(&parentPath);
+				AddRow("Folder:", parentPath.Path());
+			}
 
-            AddRow("Full path:", path.Path());
+			AddRow("Full path:", path.Path());
 
-            BNode node(&entry);
-            BNodeInfo nodeInfo(&node);
+			BNode node(&entry);
+			BNodeInfo nodeInfo(&node);
 
-            char mimeType[B_MIME_TYPE_LENGTH];
-            if (nodeInfo.GetType(mimeType) == B_OK) {
-                BMimeType mime(mimeType);
+			char mimeType[B_MIME_TYPE_LENGTH];
+			if (nodeInfo.GetType(mimeType) == B_OK) {
+				BMimeType mime(mimeType);
 
 				char shortDesc[B_MIME_TYPE_LENGTH];
 				char longDesc[256];
@@ -1000,61 +1005,60 @@ void MainWindow::_ShowImageInfo()
 				}
 			}
 
-            char diskBuf[32], memBuf[32];
-            FormatSize(diskBuf, GetFileSize(&fCurrentRef));
-            FormatSize(memBuf, bitmap->BitsLength());
+			char diskBuf[32], memBuf[32];
+			FormatSize(diskBuf, GetFileSize(&fCurrentRef));
+			FormatSize(memBuf, bitmap->BitsLength());
 
-            AddRow("Disk size:", diskBuf);
-            AddRow("Memory size:", memBuf);
+			AddRow("Disk size:", diskBuf);
+			AddRow("Memory size:", memBuf);
 
-            time_t modTime;
-            if (node.GetModificationTime(&modTime) == B_OK) {
-                BString t(ctime(&modTime));
-                t.Trim();
-                AddRow("File date/time:", t);
-            }
-        }
+			time_t modTime;
+			if (node.GetModificationTime(&modTime) == B_OK) {
+				BString t(ctime(&modTime));
+				t.Trim();
+				AddRow("File date/time:", t);
+			}
+		}
 
-        // Image
-        AddSection("Image");
+		// Image
+		AddSection("Image");
 
-        int32 width  = bitmap->Bounds().IntegerWidth() + 1;
-        int32 height = bitmap->Bounds().IntegerHeight() + 1;
+		int32 width = bitmap->Bounds().IntegerWidth() + 1;
+		int32 height = bitmap->Bounds().IntegerHeight() + 1;
 
-        AddRow("Original size:", FormatDimensions(width, height));
+		AddRow("Original size:", FormatDimensions(width, height));
 
-        float zoom = fImageView->EffectiveZoom();
-        int32 currentW = width * zoom;
-        int32 currentH = height * zoom;
+		float zoom = fImageView->EffectiveZoom();
+		int32 currentW = width * zoom;
+		int32 currentH = height * zoom;
 
-        AddRow("Current size:", FormatDimensions(currentW, currentH));
+		AddRow("Current size:", FormatDimensions(currentW, currentH));
 
-        BString zoomStr;
-        zoomStr.SetToFormat("%.2f%%", zoom * 100);
-        AddRow("Zoom:", zoomStr);
+		BString zoomStr;
+		zoomStr.SetToFormat("%.2f%%", zoom * 100);
+		AddRow("Zoom:", zoomStr);
 
 		AddRow("Color space:", ColorSpaceToString(bitmap->ColorSpace()));
 
-        BString loadStr;
-        loadStr.SetToFormat("%.2f ms", fLoadTime / 1000.0);
-        AddRow("Load time:", loadStr);
+		BString loadStr;
+		loadStr.SetToFormat("%.2f ms", fLoadTime / 1000.0);
+		AddRow("Load time:", loadStr);
 
-        if (!fFileList.empty() && fCurrentIndex >= 0) {
-            BString idx;
-            idx.SetToFormat("%d / %lu",
-                fCurrentIndex + 1,
-                fFileList.size());
-            AddRow("Index:", idx);
-        }
-    }
+		if (!fFileList.empty() && fCurrentIndex >= 0) {
+			BString idx;
+			idx.SetToFormat("%d / %lu", fCurrentIndex + 1, fFileList.size());
+			AddRow("Index:", idx);
+		}
+	}
 
-    fInfoWindow->PostMessage(&msg);
+	fInfoWindow->PostMessage(&msg);
 	if (fInfoWindow->IsHidden())
 		fInfoWindow->Show();
 }
 
 
-bool MainWindow::QuitRequested(void)
+bool
+MainWindow::QuitRequested(void)
 {
 	if (fSettingsWindow && fSettingsWindow->LockLooper()) {
 		fSettingsWindow->Quit();

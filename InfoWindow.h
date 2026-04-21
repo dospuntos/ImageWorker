@@ -5,9 +5,9 @@
 #ifndef INFO_WINDOW_H
 #define INFO_WINDOW_H
 
-#include <Window.h>
-#include <String.h>
 #include <GridView.h>
+#include <String.h>
+#include <Window.h>
 #include <functional>
 
 class InfoWindow : public BWindow {

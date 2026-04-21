@@ -753,22 +753,22 @@ void ImageView::MouseMoved(BPoint where, uint32, const BMessage*)
             break;
 
         case SCALE_FIT_WIDTH:
-            // Width is fixed → only vertical panning
+            // only vertical panning
             fOffset.y += dy;
             break;
 
         case SCALE_FIT_HEIGHT:
-            // Height is fixed → only horizontal panning
+            // only horizontal panning
             fOffset.x += dx;
             break;
 
         case SCALE_FIT_WINDOW:
         case SCALE_FIT_LARGE_ONLY:
-            // Fully constrained → no panning
+            // no panning
             return;
 
 /*        case SCALE_FILL_WINDOW:
-            // Optional: allow both directions (image is cropped)
+            // Todo: allow both directions (image is cropped)
             fOffset.x += dx;
             fOffset.y += dy;
             break; */

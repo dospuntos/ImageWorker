@@ -6,19 +6,18 @@
 #define MAINWINDOW_H
 
 
-#include <FilePanel.h>
-#include <vector>
-#include <MenuBar.h>
-#include <MenuItem.h>
-#include <Window.h>
 #include "ImageView.h"
 #include "InfoWindow.h"
 #include "StatusView.h"
 #include "Toolbar.h"
+#include <FilePanel.h>
+#include <MenuBar.h>
+#include <MenuItem.h>
 #include <StringView.h>
+#include <Window.h>
+#include <vector>
 
-class MainWindow : public BWindow
-{
+class MainWindow : public BWindow {
 public:
 							MainWindow();
 	virtual					~MainWindow();

@@ -5,8 +5,8 @@
 #ifndef IMAGE_VIEW_H
 #define IMAGE_VIEW_H
 
-#include <View.h>
 #include <Bitmap.h>
+#include <View.h>
 #include <vector>
 
 enum ScaleMode {
@@ -17,11 +17,7 @@ enum ScaleMode {
 	SCALE_FIT_HEIGHT
 };
 
-enum ColorChannel {
-    CHANNEL_RED,
-    CHANNEL_GREEN,
-    CHANNEL_BLUE
-};
+enum ColorChannel { CHANNEL_RED, CHANNEL_GREEN, CHANNEL_BLUE };
 
 class ImageView : public BView {
 public:
@@ -82,7 +78,6 @@ private:
 	std::vector<BBitmap*> fHistory;
 	int32 fHistoryIndex = -1;
 	int32 fMaxHistorySteps = 10;
-
 };
 
 #endif // IMAGE_VIEW_H
