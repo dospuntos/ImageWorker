@@ -11,9 +11,12 @@
 #include "StatusView.h"
 #include "Toolbar.h"
 #include <FilePanel.h>
+#include <LayoutBuilder.h>
 #include <MenuBar.h>
 #include <MenuItem.h>
 #include <StringView.h>
+#include <TextControl.h>
+#include <TranslationDefs.h>
 #include <Window.h>
 #include <vector>
 
@@ -44,6 +47,15 @@ private:
 			BMenuItem*		fMSaveAs;
 			BFilePanel*		fOpenPanel;
 			BFilePanel*		fSavePanel;
+			translator_id	fSelectedTranslator = -1;
+			uint32			fSelectedFormat;
+			int32			fSelectedFormatIndex;
+			void			_SaveRequested(BMessage* message);
+			void			_ShowSavePanel();
+			status_t		_SaveBitmap(BBitmap* bitmap, BFile& file, uint32 format);
+			void			_InitSavePanel();
+			BString			_GetExtension();
+			void			_UpdateFilenameExtension();
 
 			std::vector<entry_ref> fFileList;
 			int32			fCurrentIndex = -1;
@@ -98,4 +110,16 @@ private:
 			BMenuItem*		fMRandom;
 };
 
+class SavePanelView : public BView {
+public:
+    SavePanelView(BMenuField* field)
+        : BView("save_panel_view", B_WILL_DRAW)
+    {
+        SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
+
+        BLayoutBuilder::Group<>(this, B_VERTICAL)
+            .SetInsets(10)
+            .Add(field);
+    }
+};
 #endif

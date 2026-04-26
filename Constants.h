@@ -17,6 +17,8 @@ enum {
 	M_OPEN_FILE = 'fopn',
 	M_REOPEN_FILE = 'frop',
 	M_SAVE_FILE = 'fsav',
+	M_FORMAT_SELECTED = 'fmts',
+	M_SHOW_TRANSLATOR_SETTINGS = 'fset',
 	M_FIT_TO_WINDOW = 'ftwi',
 	M_FIT_LARGE_TO_WINDOW = 'fitl',
 	M_ACTUAL_SIZE = 'acts',

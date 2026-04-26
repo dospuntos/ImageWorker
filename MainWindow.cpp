@@ -13,6 +13,7 @@
 #include <Alert.h>
 #include <Application.h>
 #include <BitmapStream.h>
+#include <Button.h>
 #include <Catalog.h>
 #include <Clipboard.h>
 #include <Directory.h>
@@ -22,9 +23,11 @@
 #include <LayoutBuilder.h>
 #include <Menu.h>
 #include <MenuBar.h>
+#include <MimeType.h>
 #include <Node.h>
 #include <NodeInfo.h>
 #include <Path.h>
+#include <PopUpMenu.h>
 #include <RecentItems.h>
 #include <Roster.h>
 #include <SeparatorView.h>
@@ -49,7 +52,10 @@ MainWindow::MainWindow()
 	fHasImage(false),
 	fUndoSteps(5),
 	fSettingsWindow(nullptr),
-	fInfoWindow(nullptr)
+	fInfoWindow(nullptr),
+	fSelectedFormat(B_PNG_FORMAT),
+	fSelectedFormatIndex(1),
+	fSelectedTranslator(0)
 {
 	BMenuBar* menuBar = _BuildMenu();
 	fImageView = new ImageView();
@@ -69,8 +75,7 @@ MainWindow::MainWindow()
 
 	BMessenger messenger(this);
 	fOpenPanel = new BFilePanel(B_OPEN_PANEL, &messenger, NULL, B_FILE_NODE, false);
-	fSavePanel = new BFilePanel(B_SAVE_PANEL, &messenger, NULL, B_FILE_NODE, false);
-
+	_InitSavePanel();
 	BMessage settings;
 	_LoadSettings(settings);
 
@@ -132,56 +137,13 @@ MainWindow::MessageReceived(BMessage* message)
 		} break;
 
 		case B_SAVE_REQUESTED:
-		{
-			entry_ref ref;
-			const char* name;
-			if (message->FindRef("directory", &ref) == B_OK
-				&& message->FindString("name", &name) == B_OK) {
-				BDirectory directory(&ref);
-				BEntry entry(&directory, name);
-				BPath path = BPath(&entry);
-
-				BFile file(path.Path(), B_WRITE_ONLY | B_CREATE_FILE | B_ERASE_FILE);
-				if (file.InitCheck() != B_OK) {
-					printf("Failed to open file for writing\n");
-					break;
-				}
-
-				BBitmap* bitmap = fImageView->Bitmap();
-				if (!bitmap)
-					break;
-
-				BBitmapStream stream(bitmap);
-
-				// Save as PNG for now
-				status_t result = BTranslatorRoster::Default()->Translate(&stream, NULL, NULL,
-					&file, B_PNG_FORMAT);
-
-				stream.DetachBitmap(&bitmap);
-
-				if (result == B_OK) {
-					printf("Saved to: %s\n", path.Path());
-
-					// Update current file
-					fCurrentRef = entry_ref();
-					entry.GetRef(&fCurrentRef);
-
-					// Remember directory
-					fLastSaveDir = ref;
-
-					_UpdateStatus();
-				} else {
-					printf("Save failed\n");
-				}
-			}
-		} break;
+			_SaveRequested(message);
+			break;
 
 		case M_NEW_FILE:
-		{
 			fMSave->SetEnabled(false);
-
 			printf("New\n");
-		} break;
+			break;
 
 		case M_OPEN_FILE:
 		{
@@ -198,24 +160,58 @@ MainWindow::MessageReceived(BMessage* message)
 			_LoadDirectory(fCurrentRef);
 			_LoadImage(fCurrentRef);
 		} break;
-
 		case M_SAVE_FILE:
+			_ShowSavePanel();
+			break;
+		case M_FORMAT_SELECTED:
 		{
-			if (!fImageView->Bitmap())
+			const char* mime = nullptr;
+
+			message->FindInt32("be:type", (int32*)&fSelectedFormat);
+			message->FindInt32("be:translator", (int32*)&fSelectedTranslator);
+			message->FindInt32("be:format", &fSelectedFormatIndex);
+
+			_UpdateFilenameExtension();
+
+			break;
+		}
+		case M_SHOW_TRANSLATOR_SETTINGS:
+		{
+			if (fSelectedTranslator < 0)
 				break;
 
-			if (fCurrentRef.name)
-				fSavePanel->SetSaveText(fCurrentRef.name);
+			BTranslatorRoster* roster = BTranslatorRoster::Default();
 
-			// Set directory
-			if (fLastSaveDir.name) {
-				BEntry entry(&fLastSaveDir);
-				BDirectory dir(&entry);
-				fSavePanel->SetPanelDirectory(&dir);
+			BView* configView = nullptr;
+			BRect rect;
+
+			if (roster->MakeConfigurationView(
+					fSelectedTranslator,
+					nullptr,
+					&configView,
+					&rect) != B_OK || !configView) {
+				printf("Translator has no settings\n");
+				break;
 			}
 
-			fSavePanel->Show();
-		} break;
+			BWindow* parent = fSavePanel->Window();
+
+			BWindow* settingsWin = new BWindow(
+				BRect(100, 100, 100 + rect.Width(), 100 + rect.Height()),
+				"Translator Settings",
+				B_TITLED_WINDOW,
+				B_ASYNCHRONOUS_CONTROLS | B_AUTO_UPDATE_SIZE_LIMITS | B_CLOSE_ON_ESCAPE
+			);
+
+			parent->AddToSubset(settingsWin);
+
+			settingsWin->AddChild(configView);
+			BRect frame = parent->Frame();
+			settingsWin->MoveTo(frame.left + 40, frame.top + 40);
+
+			settingsWin->Show();
+			break;
+		}
 
 		case B_UNDO:
 			fImageView->Undo();
@@ -1057,6 +1053,183 @@ MainWindow::_ShowImageInfo()
 }
 
 
+void
+MainWindow::_SaveRequested(BMessage* message)
+{
+    entry_ref ref;
+    const char* name;
+    if (message->FindRef("directory", &ref) != B_OK
+        || message->FindString("name", &name) != B_OK)
+        return;
+
+    BBitmap* bitmap = fImageView->Bitmap();
+    if (bitmap == NULL)
+        return;
+
+    BDirectory directory(&ref);
+    BEntry entry(&directory, name);
+    BPath path(&entry);
+    BFile file(path.Path(), B_WRITE_ONLY | B_CREATE_FILE | B_ERASE_FILE);
+    if (file.InitCheck() != B_OK) {
+        printf("Failed to open file for writing\n");
+        return;
+    }
+
+    uint32 format = fSelectedFormat;
+    if (_SaveBitmap(bitmap, file, format) == B_OK) {
+        printf("Saved to: %s\n", path.Path());
+        entry.GetRef(&fCurrentRef);
+        fLastSaveDir = ref;
+        _UpdateStatus();
+    } else {
+        printf("Save failed\n");
+    }
+}
+
+
+void
+MainWindow::_ShowSavePanel()
+{
+    if (fImageView->Bitmap() == NULL)
+        return;
+
+    if (fCurrentRef.name != NULL)
+        fSavePanel->SetSaveText(fCurrentRef.name);
+
+    if (fLastSaveDir.name != NULL) {
+        BEntry entry(&fLastSaveDir);
+        BDirectory dir(&entry);
+        fSavePanel->SetPanelDirectory(&dir);
+    }
+
+    fSavePanel->Show();
+	PostMessage(M_FORMAT_SELECTED);
+}
+
+
+status_t
+MainWindow::_SaveBitmap(BBitmap* bitmap, BFile& file, uint32 format)
+{
+    BBitmapStream stream(bitmap);
+    status_t result = BTranslatorRoster::Default()->Translate(
+        &stream, NULL, NULL, &file, format);
+    stream.DetachBitmap(&bitmap);
+    return result;
+}
+
+void
+MainWindow::_InitSavePanel()
+{
+    fSavePanel = new BFilePanel(
+        B_SAVE_PANEL,
+        new BMessenger(this),
+        NULL,
+        0,
+        false,
+        NULL,
+        NULL,
+        false
+    );
+
+    BWindow* win = fSavePanel->Window();
+    win->Lock();
+
+	BView* textView = win->FindView("text view");
+	textView->SetFlags(textView->Flags() | B_FOLLOW_RIGHT);
+    BView* root = win->ChildAt(0);
+
+    // --- 1. Format menu ---
+    BPopUpMenu* formatMenu = new BPopUpMenu("Format");
+    BMessage msg(M_FORMAT_SELECTED);
+    BTranslationUtils::AddTranslationItems(
+        formatMenu,
+        B_TRANSLATOR_BITMAP,
+        &msg,
+        NULL, NULL, NULL);
+    formatMenu->SetTargetForItems(this);
+
+    BMenuField* field = new BMenuField(
+        BRect(10, textView->Frame().bottom + 10,
+              300, textView->Frame().bottom + 40),
+        "format",
+        "Format:",
+        formatMenu,
+		B_FOLLOW_LEFT_RIGHT | B_FOLLOW_BOTTOM);
+
+    field->SetDivider(field->StringWidth("Format:") + 10);
+    root->AddChild(field);
+
+    // --- 2. Default format (PNG) ---
+    for (int32 i = 0; i < formatMenu->CountItems(); i++) {
+		BMenuItem* item = formatMenu->ItemAt(i);
+
+		BMessage* msg = item->Message();
+		if (!msg)
+			continue;
+
+		int32 type;
+		int32 translator;
+
+		if (msg->FindInt32("be:type", &type) == B_OK &&
+			msg->FindInt32("be:translator", &translator) == B_OK) {
+
+			if (type == B_PNG_FORMAT) {
+				item->SetMarked(true);
+
+				// Manually apply selection
+				fSelectedFormat = type;
+				fSelectedTranslator = translator;
+				break;
+			}
+		}
+	}
+
+	int32 count = root->CountChildren();
+	for (int32 i = 0; i < count; ++i) {
+		BView* child = root->ChildAt(i);
+		if ((child->ResizingMode() & B_FOLLOW_BOTTOM)
+			|| !(child->ResizingMode() & B_FOLLOW_TOP_BOTTOM))
+			child->MoveBy(0.0, -30.0);
+		else if (child->ResizingMode() & B_FOLLOW_TOP_BOTTOM)
+			child->ResizeBy(0.0, -30.0);
+	}
+
+    // --- 3. Settings button ---
+    BView* cancel = win->FindView("cancel button");
+
+    if (cancel) {
+        BButton* settingsButton = new BButton(
+            BRect(0,0,1,1),
+            "settings",
+            "Settings" B_UTF8_ELLIPSIS,
+            new BMessage(M_SHOW_TRANSLATOR_SETTINGS),
+			B_FOLLOW_RIGHT | B_FOLLOW_BOTTOM
+        );
+
+        settingsButton->ResizeToPreferred();
+		settingsButton->SetTarget(this);
+        root->AddChild(settingsButton);
+
+        BRect r = cancel->Frame();
+        settingsButton->MoveTo(
+            r.left - settingsButton->Bounds().Width() - 10,
+            r.top);
+
+		if (textView && settingsButton) {
+			BRect t = textView->Frame();
+			BRect s = settingsButton->Frame();
+
+			float newWidth = s.left - t.left - 10.0f;
+			if (newWidth > 50) {
+				textView->ResizeTo(newWidth, t.Height());
+			}
+		}
+	}
+
+    win->Unlock();
+}
+
+
 bool
 MainWindow::QuitRequested(void)
 {
@@ -1070,4 +1243,106 @@ MainWindow::QuitRequested(void)
 	}
 	be_app->PostMessage(B_QUIT_REQUESTED);
 	return true;
+}
+
+
+void
+MainWindow::_UpdateFilenameExtension()
+{
+    if (!fSavePanel)
+        return;
+
+	BWindow* win = fSavePanel->Window();
+    if (!win)
+        return;
+
+    BTextControl* text = dynamic_cast<BTextControl*>(win->FindView("text view"));
+    if (!text)
+        return;
+
+    BString name = text->Text();
+    if (name.IsEmpty())
+        return;
+
+    // Remove existing extension
+    int32 dot = name.FindLast('.');
+    if (dot > 0)
+        name.Truncate(dot);
+
+    BString ext = _GetExtension();
+
+    if (ext)
+        name << "." << ext;
+
+    fSavePanel->SetSaveText(name.String());
+}
+
+
+BString
+MainWindow::_GetExtension()
+{
+    if (fSelectedTranslator < 0 || fSelectedFormatIndex < 0)
+        return "img";
+
+	printf("SelectedTranslator: %lu\n", fSelectedTranslator);
+
+	const translation_format* formats = nullptr;
+    int32 count = 0;
+
+    if (BTranslatorRoster::Default()->GetOutputFormats(
+            fSelectedTranslator, &formats, &count) != B_OK)
+        return "img";
+
+    if (fSelectedFormatIndex >= count)
+        return "img";
+
+    const translation_format& fmt = formats[fSelectedFormatIndex];
+
+    // Prefer MIME extension
+    BString mime(fmt.MIME);
+	BMimeType mimeType(mime.String());
+	BMessage extensions;
+	BString ext;
+
+	mimeType.GetFileExtensions(&extensions);
+	extensions.FindString("extensions", 0, &ext);
+
+	if (ext.Length()) {
+		// Normalize common extensions
+		if (ext == "jpeg") return "jpg";
+		if (ext == "tiff") return "tif";
+
+		return ext;
+	}
+	// Fallback if unable to get extension from translator
+    mime.ToLower();
+
+    if (mime.FindFirst("image/png") == 0) return "png";
+    if (mime.FindFirst("image/jpeg") == 0) return "jpg";
+    if (mime.FindFirst("image/bmp") == 0) return "bmp";
+	if (mime.FindFirst("image/x-be-bitmap") == 0) return "bmp";
+    if (mime.FindFirst("image/gif") == 0) return "gif";
+    if (mime.FindFirst("image/tiff") == 0) return "tif";
+    if (mime.FindFirst("image/x-tga") == 0) return "tga";
+
+    // Modern Web Formats
+    if (mime.FindFirst("image/webp") == 0) return "webp";
+    if (mime.FindFirst("image/svg+xml") == 0) return "svg";
+    if (mime.FindFirst("image/avif") == 0) return "avif";
+	if (mime.FindFirst("image/qoi") == 0) return "qoi";
+
+    // Apple / High Efficiency
+    if (mime.FindFirst("image/heic") == 0) return "heic";
+    if (mime.FindFirst("image/heif") == 0) return "heif";
+
+    // Specialized & Vendor
+    if (mime.FindFirst("image/vnd.adobe.photoshop") == 0) return "psd";
+    if (mime.FindFirst("image/x-icon") == 0) return "ico";
+    if (mime.FindFirst("image/vnd.microsoft.icon") == 0) return "ico";
+    if (mime.FindFirst("image/x-portable-anymap") == 0) return "pnm";
+    if (mime.FindFirst("image/vnd.wap.wbmp") == 0) return "wbmp";
+
+	printf("Fallback failed. MIME: %s\n", mime.String());
+
+    return "img";
 }
