@@ -29,6 +29,7 @@ public:
 	void 					MenusBeginning();
 	bool					closeOnEscape() { return fCloseOnEscape; }
 	int						undoSteps() { return fUndoSteps; }
+	bool					fHasImage;
 
 private:
 			BMenuBar*		_BuildMenu();
@@ -61,7 +62,6 @@ private:
 			int32			fCurrentIndex = -1;
 			entry_ref		fCurrentRef;
 			entry_ref		fLastSaveDir;
-			bool			fHasImage;
 			bigtime_t		fLoadTime;
 
 
@@ -108,6 +108,9 @@ private:
 			BMenuItem*		fMFirst;
 			BMenuItem*		fMLast;
 			BMenuItem*		fMRandom;
+			BMenu*			fMEffects;
+			BMenuItem*		fMAutoAdjust;
+			BMenuItem*		fMSharpen;
 };
 
 class SavePanelView : public BView {

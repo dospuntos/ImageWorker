@@ -58,10 +58,16 @@ public:
 	void FlipHorizontal();
 	void FlipVertical();
 	void ConvertToGrayscale();
+	void Sepia();
 	void SwapColors(const int order[4]);
 	void InvertColors();
 	void IsolateChannel(ColorChannel channel, bool replicateToAll);
+	void AutoAdjustColors(float clipPercent = 0.01f);
+	void Sharpen();
+	void Blur();
+	void Emboss();
 
+	void GrabScreen();
 	float Zoom() const;
 	void SetZoom(float zoom);
 	void ZoomIn();

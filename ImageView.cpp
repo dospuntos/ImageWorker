@@ -5,8 +5,10 @@
 
 #include "ImageView.h"
 #include "Constants.h"
+#include "MainWindow.h"
 #include <Window.h>
 #include <Cursor.h>
+#include <Screen.h>
 #include <cstdio>
 
 ImageView::ImageView()
@@ -273,6 +275,12 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
 				if (Window())
 					Window()->PostMessage(M_SHOW_SETTINGS);
 				return;
+
+			case 'c':
+			case 'C':
+				if (Window())
+					Window()->PostMessage(M_SCREENSHOT);
+				return;
         }
     }
 
@@ -473,7 +481,57 @@ void ImageView::ConvertToGrayscale()
 }
 
 
-void ImageView::SwapColors(const int order[4])
+void
+ImageView::Sepia()
+{
+    if (!fBitmap)
+        return;
+
+    if (fBitmap->ColorSpace() != B_RGBA32 &&
+        fBitmap->ColorSpace() != B_RGB32)
+        return;
+
+    int32 width  = fBitmap->Bounds().IntegerWidth() + 1;
+    int32 height = fBitmap->Bounds().IntegerHeight() + 1;
+
+    uint8* bits = (uint8*)fBitmap->Bits();
+    int32 bpr = fBitmap->BytesPerRow();
+
+    for (int32 y = 0; y < height; ++y) {
+        uint8* row = bits + y * bpr;
+
+        for (int32 x = 0; x < width; ++x) {
+            uint8* pixel = row + x * 4;
+
+            uint8 b = pixel[0];
+            uint8 g = pixel[1];
+            uint8 r = pixel[2];
+
+            // Standard sepia transform
+            int tr = (int)(0.393f * r + 0.769f * g + 0.189f * b);
+            int tg = (int)(0.349f * r + 0.686f * g + 0.168f * b);
+            int tb = (int)(0.272f * r + 0.534f * g + 0.131f * b);
+
+            // Clamp
+            if (tr > 255) tr = 255;
+            if (tg > 255) tg = 255;
+            if (tb > 255) tb = 255;
+
+            pixel[2] = (uint8)tr; // R
+            pixel[1] = (uint8)tg; // G
+            pixel[0] = (uint8)tb; // B
+        }
+    }
+
+    SaveState();
+    Invalidate();
+    if (Window())
+        Window()->PostMessage('stat');
+}
+
+
+void
+ImageView::SwapColors(const int order[4])
 {
     if (!fBitmap)
         return;
@@ -514,7 +572,8 @@ void ImageView::SwapColors(const int order[4])
 }
 
 
-void ImageView::InvertColors()
+void
+ImageView::InvertColors()
 {
     if (!fBitmap)
         return;
@@ -539,7 +598,6 @@ void ImageView::InvertColors()
             pixel[0] = 255 - pixel[0]; // B
             pixel[1] = 255 - pixel[1]; // G
             pixel[2] = 255 - pixel[2]; // R
-            // pixel[3] = alpha (unchanged)
         }
     }
 
@@ -601,14 +659,383 @@ void ImageView::IsolateChannel(ColorChannel channel, bool replicateToAll)
         Window()->PostMessage('stat');
 }
 
+void
+ImageView::AutoAdjustColors(float clipPercent)
+{
+    if (!fBitmap)
+        return;
+
+    if (fBitmap->ColorSpace() != B_RGBA32 &&
+        fBitmap->ColorSpace() != B_RGB32)
+        return;
+
+    int32 width  = fBitmap->Bounds().IntegerWidth() + 1;
+    int32 height = fBitmap->Bounds().IntegerHeight() + 1;
+
+    uint8* bits = (uint8*)fBitmap->Bits();
+    int32 bpr = fBitmap->BytesPerRow();
+
+    const int HIST_SIZE = 256;
+    uint32 histR[HIST_SIZE] = {0};
+    uint32 histG[HIST_SIZE] = {0};
+    uint32 histB[HIST_SIZE] = {0};
+
+    // Pass 1: build histograms
+    for (int32 y = 0; y < height; ++y) {
+        uint8* row = bits + y * bpr;
+
+        for (int32 x = 0; x < width; ++x) {
+            uint8* pixel = row + x * 4;
+
+            histB[pixel[0]]++;
+            histG[pixel[1]]++;
+            histR[pixel[2]]++;
+        }
+    }
+
+    uint32 totalPixels = width * height;
+    uint32 clipCount = (uint32)(totalPixels * clipPercent);
+
+    auto findMin = [&](uint32 hist[]) -> uint8 {
+        uint32 sum = 0;
+        for (int i = 0; i < HIST_SIZE; ++i) {
+            sum += hist[i];
+            if (sum > clipCount)
+                return (uint8)i;
+        }
+        return 0;
+    };
+
+    auto findMax = [&](uint32 hist[]) -> uint8 {
+        uint32 sum = 0;
+        for (int i = HIST_SIZE - 1; i >= 0; --i) {
+            sum += hist[i];
+            if (sum > clipCount)
+                return (uint8)i;
+        }
+        return 255;
+    };
+
+    uint8 minR = findMin(histR);
+    uint8 minG = findMin(histG);
+    uint8 minB = findMin(histB);
+
+    uint8 maxR = findMax(histR);
+    uint8 maxG = findMax(histG);
+    uint8 maxB = findMax(histB);
+
+    float scaleR = (maxR > minR) ? 255.0f / (maxR - minR) : 1.0f;
+    float scaleG = (maxG > minG) ? 255.0f / (maxG - minG) : 1.0f;
+    float scaleB = (maxB > minB) ? 255.0f / (maxB - minB) : 1.0f;
+
+    // Pass 2: apply adjustment
+    for (int32 y = 0; y < height; ++y) {
+        uint8* row = bits + y * bpr;
+
+        for (int32 x = 0; x < width; ++x) {
+            uint8* pixel = row + x * 4;
+
+            int r = (int)((pixel[2] - minR) * scaleR);
+            int g = (int)((pixel[1] - minG) * scaleG);
+            int b = (int)((pixel[0] - minB) * scaleB);
+
+            // clamp
+            pixel[2] = (uint8)(r < 0 ? 0 : (r > 255 ? 255 : r));
+            pixel[1] = (uint8)(g < 0 ? 0 : (g > 255 ? 255 : g));
+            pixel[0] = (uint8)(b < 0 ? 0 : (b > 255 ? 255 : b));
+        }
+    }
+
+    SaveState();
+    Invalidate();
+    if (Window())
+        Window()->PostMessage('stat');
+}
+
+void
+ImageView::Sharpen()
+{
+    if (!fBitmap)
+        return;
+
+    if (fBitmap->ColorSpace() != B_RGBA32 &&
+        fBitmap->ColorSpace() != B_RGB32)
+        return;
+
+    int32 width  = fBitmap->Bounds().IntegerWidth() + 1;
+    int32 height = fBitmap->Bounds().IntegerHeight() + 1;
+
+    int32 bpr = fBitmap->BytesPerRow();
+    uint8* srcBits = (uint8*)fBitmap->Bits();
+
+    // Make a copy of the original pixels
+    size_t size = bpr * height;
+    uint8* copy = (uint8*)malloc(size);
+    if (!copy)
+        return;
+
+    memcpy(copy, srcBits, size);
+
+    // Kernel
+    int kernel[3][3] = {
+        { 0, -1,  0 },
+        { -1, 5, -1 },
+        { 0, -1,  0 }
+    };
+
+    for (int32 y = 1; y < height - 1; ++y) {
+        for (int32 x = 1; x < width - 1; ++x) {
+
+            int sumR = 0, sumG = 0, sumB = 0;
+
+            for (int ky = -1; ky <= 1; ++ky) {
+                for (int kx = -1; kx <= 1; ++kx) {
+
+                    uint8* pixel = copy + (y + ky) * bpr + (x + kx) * 4;
+
+                    int weight = kernel[ky + 1][kx + 1];
+
+                    sumB += pixel[0] * weight;
+                    sumG += pixel[1] * weight;
+                    sumR += pixel[2] * weight;
+                }
+            }
+
+            uint8* dst = srcBits + y * bpr + x * 4;
+
+            // Clamp results
+            auto clamp = [](int v) -> uint8 {
+                return (uint8)(v < 0 ? 0 : (v > 255 ? 255 : v));
+            };
+
+            dst[0] = clamp(sumB);
+            dst[1] = clamp(sumG);
+            dst[2] = clamp(sumR);
+            // alpha unchanged
+        }
+    }
+
+    free(copy);
+
+    SaveState();
+    Invalidate();
+    if (Window())
+        Window()->PostMessage('stat');
+}
 
 
-float ImageView::Zoom() const
+void
+ImageView::Blur()
+{
+    if (!fBitmap)
+        return;
+
+    if (fBitmap->ColorSpace() != B_RGBA32 &&
+        fBitmap->ColorSpace() != B_RGB32)
+        return;
+
+    int32 width  = fBitmap->Bounds().IntegerWidth() + 1;
+    int32 height = fBitmap->Bounds().IntegerHeight() + 1;
+
+    int32 bpr = fBitmap->BytesPerRow();
+    uint8* srcBits = (uint8*)fBitmap->Bits();
+
+    // Copy original pixels
+    size_t size = bpr * height;
+    uint8* copy = (uint8*)malloc(size);
+    if (!copy)
+        return;
+
+    memcpy(copy, srcBits, size);
+
+    int kernel[3][3] = {
+        {1, 2, 1},
+        {2, 4, 2},
+        {1, 2, 1}
+    };
+
+    for (int32 y = 1; y < height - 1; ++y) {
+        for (int32 x = 1; x < width - 1; ++x) {
+
+            int sumR = 0, sumG = 0, sumB = 0;
+
+            for (int ky = -1; ky <= 1; ++ky) {
+                for (int kx = -1; kx <= 1; ++kx) {
+
+                    uint8* pixel = copy + (y + ky) * bpr + (x + kx) * 4;
+                    int weight = kernel[ky + 1][kx + 1];
+
+                    sumB += pixel[0] * weight;
+                    sumG += pixel[1] * weight;
+                    sumR += pixel[2] * weight;
+                }
+            }
+
+            uint8* dst = srcBits + y * bpr + x * 4;
+
+            dst[0] = (uint8)(sumB / 16);
+            dst[1] = (uint8)(sumG / 16);
+            dst[2] = (uint8)(sumR / 16);
+            // alpha unchanged
+        }
+    }
+
+    free(copy);
+
+    SaveState();
+    Invalidate();
+    if (Window())
+        Window()->PostMessage('stat');
+}
+
+
+void
+ImageView::Emboss()
+{
+    if (!fBitmap)
+        return;
+
+    if (fBitmap->ColorSpace() != B_RGBA32 &&
+        fBitmap->ColorSpace() != B_RGB32)
+        return;
+
+    int32 width  = fBitmap->Bounds().IntegerWidth() + 1;
+    int32 height = fBitmap->Bounds().IntegerHeight() + 1;
+
+    int32 bpr = fBitmap->BytesPerRow();
+    uint8* srcBits = (uint8*)fBitmap->Bits();
+
+    // Copy original pixels
+    size_t size = bpr * height;
+    uint8* copy = (uint8*)malloc(size);
+    if (!copy)
+        return;
+
+    memcpy(copy, srcBits, size);
+
+    // Emboss kernel (light from top-left)
+    int kernel[3][3] = {
+        {-2, -1,  0},
+        {-1,  1,  1},
+        { 0,  1,  2}
+    };
+
+    for (int32 y = 1; y < height - 1; ++y) {
+        for (int32 x = 1; x < width - 1; ++x) {
+
+            int sum = 0;
+
+            for (int ky = -1; ky <= 1; ++ky) {
+                for (int kx = -1; kx <= 1; ++kx) {
+
+                    uint8* pixel = copy + (y + ky) * bpr + (x + kx) * 4;
+
+                    // Convert neighbor to grayscale (luminance)
+                    int gray = (int)(0.299f * pixel[2] +
+                                     0.587f * pixel[1] +
+                                     0.114f * pixel[0]);
+
+                    int weight = kernel[ky + 1][kx + 1];
+                    sum += gray * weight;
+                }
+            }
+
+            // Add offset to center result
+            int value = sum + 128;
+
+            // Clamp
+            if (value < 0) value = 0;
+            if (value > 255) value = 255;
+
+            uint8* dst = srcBits + y * bpr + x * 4;
+
+            // Set all channels to same value (grayscale result)
+            dst[0] = (uint8)value;
+            dst[1] = (uint8)value;
+            dst[2] = (uint8)value;
+            // alpha unchanged
+        }
+    }
+
+    free(copy);
+
+    SaveState();
+    Invalidate();
+    if (Window())
+        Window()->PostMessage('stat');
+}
+
+
+void ImageView::GrabScreen()
+{
+    if (!Window())
+        return;
+
+    // Hide window before capture
+    Window()->Hide();
+    snooze(500000);
+
+    BScreen screen;
+    BBitmap* screenBitmap = nullptr;
+
+    if (screen.GetBitmap(&screenBitmap) != B_OK || !screenBitmap) {
+        Window()->Show();
+        return;
+    }
+
+    BRect rect = screenBitmap->Bounds();
+
+    BBitmap* newBitmap = new BBitmap(rect, B_RGBA32, true);
+    if (!newBitmap || !newBitmap->IsValid()) {
+        delete screenBitmap;
+        Window()->Show();
+        return;
+    }
+
+    BView* offscreen = new BView(rect, "offscreen", B_FOLLOW_NONE, 0);
+    newBitmap->AddChild(offscreen);
+
+    newBitmap->Lock();
+    offscreen->DrawBitmap(screenBitmap, rect);
+    offscreen->Sync();
+    newBitmap->Unlock();
+
+    newBitmap->RemoveChild(offscreen);
+    delete offscreen;
+    delete screenBitmap;
+
+    // Replace current bitmap
+    if (fBitmap)
+        delete fBitmap;
+
+    fBitmap = newBitmap;
+	((MainWindow*)Window())->fHasImage = true;
+	((MainWindow*)Window())->SetTitle("Screenshot");
+
+    ClearHistory();
+    SaveState();
+
+
+    // Resize to match image
+    //ResizeTo(rect.Width(), rect.Height());
+    //Window()->ResizeTo(rect.Width(), rect.Height());
+
+    // Show again
+    Window()->Show();
+
+    Invalidate();
+    Window()->PostMessage('stat');
+}
+
+
+float
+ImageView::Zoom() const
 {
     return fZoom;
 }
 
-void ImageView::SetZoom(float zoom)
+void
+ImageView::SetZoom(float zoom)
 {
     if (zoom < 0.05f) zoom = 0.05f;
     if (zoom > 10.0f) zoom = 10.0f;
@@ -620,21 +1047,24 @@ void ImageView::SetZoom(float zoom)
 		Window()->PostMessage('stat');
 }
 
-void ImageView::ZoomIn()
+void
+ImageView::ZoomIn()
 {
     SetZoom(fZoom * 1.05f);
 	if (Window())
 		Window()->PostMessage('stat');
 }
 
-void ImageView::ZoomOut()
+void
+ImageView::ZoomOut()
 {
     SetZoom(fZoom / 1.05f);
 	if (Window())
 		Window()->PostMessage('stat');
 }
 
-float ImageView::EffectiveZoom() const
+float
+ImageView::EffectiveZoom() const
 {
     if (!fBitmap)
         return 1.0f;
@@ -658,7 +1088,8 @@ float ImageView::EffectiveZoom() const
 }
 
 
-void ImageView::MouseWheelChanged(BPoint where, float, float y)
+void
+ImageView::MouseWheelChanged(BPoint where, float, float y)
 {
     if (!fBitmap)
         return;
@@ -716,7 +1147,8 @@ void ImageView::MouseWheelChanged(BPoint where, float, float y)
 }
 
 
-void ImageView::MouseDown(BPoint where)
+void
+ImageView::MouseDown(BPoint where)
 {
 	uint32 mouseButtonStates = 0;
 	if (Window()->CurrentMessage() != NULL)
@@ -731,12 +1163,14 @@ void ImageView::MouseDown(BPoint where)
 	}
 }
 
-void ImageView::MouseUp(BPoint)
+void
+ImageView::MouseUp(BPoint)
 {
 	fDragging = false;
 }
 
-void ImageView::MouseMoved(BPoint where, uint32, const BMessage*)
+void
+ImageView::MouseMoved(BPoint where, uint32, const BMessage*)
 {
     if (!fDragging)
         return;
@@ -783,7 +1217,8 @@ void ImageView::MouseMoved(BPoint where, uint32, const BMessage*)
 }
 
 
-static float _Clamp(float v, float min, float max)
+static float
+_Clamp(float v, float min, float max)
 {
     if (v < min) return min;
     if (v > max) return max;
@@ -791,7 +1226,8 @@ static float _Clamp(float v, float min, float max)
 }
 
 
-void ImageView::_ClampOffset()
+void
+ImageView::_ClampOffset()
 {
     if (!fBitmap)
         return;
@@ -893,12 +1329,14 @@ void ImageView::_ClampOffset()
         fOffset.y = 0;
 }
 
-BBitmap* ImageView::Bitmap() const
+BBitmap*
+ImageView::Bitmap() const
 {
 	return fBitmap;
 }
 
-BBitmap* ImageView::CloneBitmap(const BBitmap* source)
+BBitmap*
+ImageView::CloneBitmap(const BBitmap* source)
 {
 	if (!source)
 		return nullptr;
@@ -916,7 +1354,8 @@ BBitmap* ImageView::CloneBitmap(const BBitmap* source)
 }
 
 
-void ImageView::SaveState()
+void
+ImageView::SaveState()
 {
     if (!fBitmap)
         return;
@@ -947,7 +1386,8 @@ void ImageView::SaveState()
 }
 
 
-void ImageView::Undo()
+void
+ImageView::Undo()
 {
     if (fHistoryIndex <= 0)
         return;
@@ -960,7 +1400,8 @@ void ImageView::Undo()
 		Window()->PostMessage('stat');
 }
 
-void ImageView::Redo()
+void
+ImageView::Redo()
 {
     if (fHistoryIndex >= (int32)fHistory.size() - 1)
         return;
@@ -974,7 +1415,8 @@ void ImageView::Redo()
 }
 
 
-void ImageView::ClearHistory()
+void
+ImageView::ClearHistory()
 {
     for (auto bitmap : fHistory)
         delete bitmap;

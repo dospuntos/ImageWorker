@@ -104,6 +104,14 @@ MainWindow::MainWindow()
 	if (settings.FindInt32("scaleMode", &scaleMode) == B_OK)
 		fImageView->SetScaleMode((ScaleMode)scaleMode);
 
+	uint32 translatorId;
+
+	if (settings.FindUInt32("translatorId", &translatorId) == B_OK)
+		fSelectedTranslator = (translator_id)translatorId;
+
+	settings.FindUInt32("selectedFormat", &fSelectedFormat);
+	settings.FindInt32("selectedFormatIndex", &fSelectedFormatIndex);
+
 	MoveOnScreen();
 	_UpdateStatus();
 	fStatusView->SetAlignment(B_ALIGN_LEFT);
@@ -165,8 +173,6 @@ MainWindow::MessageReceived(BMessage* message)
 			break;
 		case M_FORMAT_SELECTED:
 		{
-			const char* mime = nullptr;
-
 			message->FindInt32("be:type", (int32*)&fSelectedFormat);
 			message->FindInt32("be:translator", (int32*)&fSelectedTranslator);
 			message->FindInt32("be:format", &fSelectedFormatIndex);
@@ -280,6 +286,9 @@ MainWindow::MessageReceived(BMessage* message)
 		case M_CONVERT_TO_GRAYSCALE:
 			fImageView->ConvertToGrayscale();
 			break;
+		case M_CONVERT_TO_SEPIA:
+			fImageView->Sepia();
+			break;
 
 		case M_SWAP_COLOR_RBG:
 		{
@@ -319,6 +328,21 @@ MainWindow::MessageReceived(BMessage* message)
 
 		case M_INVERT_COLORS:
 			fImageView->InvertColors();
+			break;
+		case M_AUTO_ADJUST_COLORS:
+			fImageView->AutoAdjustColors();
+			break;
+		case M_SHARPEN_IMAGE:
+			fImageView->Sharpen();
+			break;
+		case M_BLUR_IMAGE:
+			fImageView->Blur();
+			break;
+		case M_EMBOSS_IMAGE:
+			fImageView->Emboss();
+			break;
+		case M_SCREENSHOT:
+			fImageView->GrabScreen();
 			break;
 
 		case 'stat':
@@ -477,7 +501,7 @@ MainWindow::_BuildMenu()
 
 	menu->AddSeparatorItem();
 
-	menu->AddItem(new BMenuItem(B_TRANSLATE("Exit"), new BMessage(B_QUIT_REQUESTED)));
+	menu->AddItem(new BMenuItem(B_TRANSLATE("Quit"), new BMessage(B_QUIT_REQUESTED)));
 
 	menuBar->AddItem(menu);
 
@@ -545,6 +569,27 @@ MainWindow::_BuildMenu()
 	menu->AddItem(fMInvertColors);
 
 	menu->AddSeparatorItem();
+
+	fMAutoAdjust = new BMenuItem(B_TRANSLATE("Auto-adjust colors"),
+		new BMessage(M_AUTO_ADJUST_COLORS));
+	menu->AddItem(fMAutoAdjust);
+	fMSharpen = new BMenuItem(B_TRANSLATE("Sharpen"), new BMessage(M_SHARPEN_IMAGE));
+	menu->AddItem(fMSharpen);
+
+	// submenu 'Effects'
+	fMEffects = new BMenu(B_TRANSLATE("Effects"));
+	item = new BMenuItem(B_TRANSLATE("3D Button"), new BMessage(M_INVERT_COLORS));
+	fMEffects->AddItem(item);
+	item = new BMenuItem(B_TRANSLATE("Blur"), new BMessage(M_BLUR_IMAGE));
+	fMEffects->AddItem(item);
+	item = new BMenuItem(B_TRANSLATE("Emboss"), new BMessage(M_EMBOSS_IMAGE));
+	fMEffects->AddItem(item);
+	item = new BMenuItem(B_TRANSLATE("Sepia"), new BMessage(M_CONVERT_TO_SEPIA));
+	fMEffects->AddItem(item);
+
+	menu->AddItem(fMEffects);
+
+	menu->AddSeparatorItem();
 	// submenu 'Swap colors'
 	fMSwapColors = new BMenu(B_TRANSLATE("Swap colors"));
 	item = new BMenuItem("RGB -> RBG", new BMessage(M_SWAP_COLOR_RBG));
@@ -559,12 +604,18 @@ MainWindow::_BuildMenu()
 	fMSwapColors->AddItem(item);
 	menu->AddItem(fMSwapColors);
 
+
 	menuBar->AddItem(menu);
 
 	// menu 'Options'
 	menu = new BMenu(B_TRANSLATE("Options"));
 
 	item = new BMenuItem(B_TRANSLATE("Properties/Settings..."), new BMessage(M_SHOW_SETTINGS), 'P');
+	menu->AddItem(item);
+
+	menu->AddSeparatorItem();
+
+	item = new BMenuItem(B_TRANSLATE("Capture/Screenshot"), new BMessage(M_SCREENSHOT));
 	menu->AddItem(item);
 
 	menu->AddSeparatorItem();
@@ -676,6 +727,9 @@ MainWindow::_SaveSettings()
 	settings.AddBool("alwaysOnTop", _AlwaysOnTop());
 	settings.AddInt32("undoSteps", fUndoSteps);
 	settings.AddInt32("scaleMode", fImageView->getScaleMode());
+	settings.AddUInt32("translatorId", (uint32)fSelectedTranslator);
+	settings.AddUInt32("selectedFormat", fSelectedFormat);
+	settings.AddInt32("selectedFormatIndex", fSelectedFormatIndex);
 
 	if (status == B_OK)
 		status = settings.Flatten(&file);
@@ -700,6 +754,9 @@ MainWindow::MenusBeginning()
 	fMShowChannel->SetEnabled(fHasImage);
 	fMReopen->SetEnabled(fHasImage);
 	fMDeleteImage->SetEnabled(fHasImage);
+	fMAutoAdjust->SetEnabled(fHasImage);
+	fMEffects->SetEnabled(fHasImage);
+	fMSharpen->SetEnabled(fHasImage);
 
 	fMUndo->SetEnabled(fImageView->CanUndo());
 	fMRedo->SetEnabled(fImageView->CanRedo());
@@ -1284,8 +1341,6 @@ MainWindow::_GetExtension()
     if (fSelectedTranslator < 0 || fSelectedFormatIndex < 0)
         return "img";
 
-	printf("SelectedTranslator: %lu\n", fSelectedTranslator);
-
 	const translation_format* formats = nullptr;
     int32 count = 0;
 
@@ -1341,8 +1396,6 @@ MainWindow::_GetExtension()
     if (mime.FindFirst("image/vnd.microsoft.icon") == 0) return "ico";
     if (mime.FindFirst("image/x-portable-anymap") == 0) return "pnm";
     if (mime.FindFirst("image/vnd.wap.wbmp") == 0) return "wbmp";
-
-	printf("Fallback failed. MIME: %s\n", mime.String());
 
     return "img";
 }
