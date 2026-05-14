@@ -35,6 +35,7 @@
 #include <TranslationKit.h>
 #include <TranslationUtils.h>
 #include <TranslatorRoster.h>
+#include <private/tracker/tracker_private.h>
 #include <View.h>
 #include <algorithm>
 #include <stdlib.h>
@@ -499,10 +500,6 @@ MainWindow::_BuildMenu()
 	fMSaveAs = new BMenuItem(B_TRANSLATE("Save as" B_UTF8_ELLIPSIS), new BMessage(M_SAVE_FILE));
 	menu->AddItem(fMSaveAs);
 
-	menu->AddSeparatorItem();
-
-	menu->AddItem(new BMenuItem(B_TRANSLATE("Quit"), new BMessage(B_QUIT_REQUESTED)));
-
 	menuBar->AddItem(menu);
 
 	// menu 'Edit'
@@ -528,10 +525,11 @@ MainWindow::_BuildMenu()
 
 	menu->AddSeparatorItem();
 
-	item = new BMenuItem(B_TRANSLATE("Create new (empty) image..."), new BMessage(M_NEW_FILE), 'N');
-	menu->AddItem(item);
+	// Todo: restore this when editing is possible
+	//item = new BMenuItem(B_TRANSLATE("Create new (empty) image..."), new BMessage(M_NEW_FILE), 'N');
+	//menu->AddItem(item);
 
-	menu->AddSeparatorItem();
+	//menu->AddSeparatorItem();
 
 	fMRotate90CCW = new BMenuItem(B_TRANSLATE("Rotate left (counter-clockwise)"),
 		new BMessage(M_ROTATE_90_CCW), 'L');
@@ -924,10 +922,9 @@ MainWindow::RandomImage()
 void
 MainWindow::DeleteCurrentImage()
 {
-	BAlert* alert = new BAlert("Confirm", "Delete this image permanently?", "Cancel", "Delete",
-		nullptr, B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_WARNING_ALERT);
+	BAlert* alert = new BAlert("Confirm", "Move this image to Trash?", "Cancel", nullptr, "Delete",
+							B_WIDTH_FROM_WIDEST, B_OFFSET_SPACING, B_WARNING_ALERT);
 	alert->SetShortcut(0, B_ESCAPE);
-	alert->SetDefaultButton(0);
 
 	if (alert->Go() != 1)
 		return;
@@ -938,10 +935,12 @@ MainWindow::DeleteCurrentImage()
 	entry_ref ref = fFileList[fCurrentIndex];
 	BEntry entry(&ref);
 
-	// Try move to Trash (safer)
-	status_t result = entry.Remove();
+	// TODO: Move to Trash
+	BMessage trash(BPrivate::kMoveToTrash);
+	trash.AddRef("refs", &ref);
 
-	if (result != B_OK) {
+	BMessenger tracker(kTrackerSignature);
+	if (tracker.SendMessage(&trash) != B_OK) {
 		printf("Failed to delete image\n");
 		return;
 	}

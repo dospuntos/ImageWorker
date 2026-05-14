@@ -25,8 +25,8 @@ CreateToolbar(BHandler* target)
 {
 	BToolBar* toolbar = new BToolBar(B_HORIZONTAL);
 
-	toolbar->AddAction(new BMessage(M_NEW_FILE), target, ResourceToBitmap("NEW_ICON"),
-		B_TRANSLATE("New"), "", false);
+	//toolbar->AddAction(new BMessage(M_NEW_FILE), target, ResourceToBitmap("NEW_ICON"),
+		//B_TRANSLATE("New"), "", false);
 	toolbar->AddAction(new BMessage(M_OPEN_FILE), target, ResourceToBitmap("OPEN_ICON"),
 		B_TRANSLATE("Open file (O)" B_UTF8_ELLIPSIS), "", false);
 	toolbar->AddAction(new BMessage(M_SAVE_FILE), target, ResourceToBitmap("SAVE_ICON"),
