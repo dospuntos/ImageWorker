@@ -16,6 +16,7 @@ enum {
 	M_NEW_FILE = 'fnew',
 	M_OPEN_FILE = 'fopn',
 	M_REOPEN_FILE = 'frop',
+	M_OPEN_WITH = 'fopw',
 	M_SAVE_FILE = 'fsav',
 	M_FORMAT_SELECTED = 'fmts',
 	M_SHOW_TRANSLATOR_SETTINGS = 'fset',

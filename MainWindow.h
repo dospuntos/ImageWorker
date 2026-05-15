@@ -14,6 +14,7 @@
 #include <LayoutBuilder.h>
 #include <MenuBar.h>
 #include <MenuItem.h>
+#include <MimeType.h>
 #include <StringView.h>
 #include <TextControl.h>
 #include <TranslationDefs.h>
@@ -30,9 +31,11 @@ public:
 	bool					closeOnEscape() { return fCloseOnEscape; }
 	int						undoSteps() { return fUndoSteps; }
 	bool					fHasImage;
+	BMimeType				fMimeType;
 
 private:
 			BMenuBar*		_BuildMenu();
+			void			_UpdateOpenWithMenu(BMenu* menu);
 			ImageView*		fImageView;
 			StatusView*		fStatusView;
 			BToolBar*		fToolBar;
@@ -83,6 +86,7 @@ private:
 
 			// menu items
 			BMenuItem*		fMReopen;
+			BMenu*	 		fOpenWithMenu;
 			BMenuItem*		fMDeleteImage;
 			BMenuItem*		fMUndo;
 			BMenuItem*		fMRedo;

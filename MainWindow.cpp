@@ -9,6 +9,7 @@
 #include "IconMenuItem.h"
 #include "SettingsWindow.h"
 #include "Utils.h"
+#include "SupportingAppsMenu.h"
 
 #include <Alert.h>
 #include <Application.h>
@@ -35,7 +36,7 @@
 #include <TranslationKit.h>
 #include <TranslationUtils.h>
 #include <TranslatorRoster.h>
-#include <private/tracker/tracker_private.h>
+#include <tracker_private.h>
 #include <View.h>
 #include <algorithm>
 #include <stdlib.h>
@@ -79,6 +80,8 @@ MainWindow::MainWindow()
 	_InitSavePanel();
 	BMessage settings;
 	_LoadSettings(settings);
+
+	fMimeType.SetTo("image/x-haiku-bitmap");
 
 	// Restore settings
 	BRect frame;
@@ -169,6 +172,18 @@ MainWindow::MessageReceived(BMessage* message)
 			_LoadDirectory(fCurrentRef);
 			_LoadImage(fCurrentRef);
 		} break;
+
+		case M_OPEN_WITH:
+		{
+			BString appSig = "";
+			message->FindString("signature", &appSig);
+			entry_ref ref = fCurrentRef;
+			BMessage openMsg(B_REFS_RECEIVED);
+			openMsg.AddRef("refs", &ref);
+			be_roster->Launch(appSig.String(), &openMsg);
+			break;
+		}
+
 		case M_SAVE_FILE:
 			_ShowSavePanel();
 			break;
@@ -487,6 +502,14 @@ MainWindow::_BuildMenu()
 	fMReopen = new BMenuItem(B_TRANSLATE("Reopen"), new BMessage(M_REOPEN_FILE), 'R', B_SHIFT_KEY);
 	menu->AddItem(fMReopen);
 
+
+
+	fOpenWithMenu = new BMenu(B_TRANSLATE("Open with" B_UTF8_ELLIPSIS));
+	_UpdateOpenWithMenu(fOpenWithMenu);
+	item = new BMenuItem(fOpenWithMenu, NULL);
+	menu->AddItem(item);
+
+
 	menu->AddSeparatorItem();
 
 	fMDeleteImage = new BMenuItem(B_TRANSLATE("Delete file"), new BMessage(M_DELETE_IMAGE));
@@ -677,6 +700,11 @@ MainWindow::_BuildMenu()
 	return menuBar;
 }
 
+void
+MainWindow::_UpdateOpenWithMenu(BMenu* menu)
+{
+	update_supporting_apps_menu(menu, &fMimeType, M_OPEN_WITH, this);
+}
 
 status_t
 MainWindow::_LoadSettings(BMessage& settings)
@@ -787,6 +815,17 @@ MainWindow::_LoadImage(const entry_ref& ref)
 	fHasImage = true;
 	fImageView->SaveState();
 
+	// Get mime type
+	fMimeType.SetTo("image/x-be-bitmap");
+	BNode node(&ref);
+	if (node.InitCheck() == B_OK) {
+		BNodeInfo nodeInfo(&node);
+		char mimeType[B_MIME_TYPE_LENGTH];
+		if (nodeInfo.GetType(mimeType) == B_OK) {
+			fMimeType.SetTo(mimeType);
+		}
+	}
+
 	BEntry entry(&ref);
 	BEntry parent;
 	if (entry.GetParent(&parent) == B_OK)
@@ -797,6 +836,7 @@ MainWindow::_LoadImage(const entry_ref& ref)
 	if (fInfoWindow && !fInfoWindow->IsHidden())
 		_ShowImageInfo();
 
+	_UpdateOpenWithMenu(fOpenWithMenu);
 	_UpdateStatus();
 }
 
