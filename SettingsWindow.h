@@ -13,13 +13,14 @@ class BCheckBox;
 
 class SettingsWindow : public BWindow {
 public:
-    SettingsWindow(bool closeOnEscape, int32 undoSteps);
+    SettingsWindow(bool closeOnEscape, bool highQualityScaling, int32 undoSteps);
 
     virtual void MessageReceived(BMessage* message);
 	bool QuitRequested();
 
 private:
     BCheckBox* fCloseOnEscape;
+	BCheckBox* fHighQualityScaling;
 	BSpinner* fUndoSteps;
 };
 

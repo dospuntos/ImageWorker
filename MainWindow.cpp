@@ -94,6 +94,11 @@ MainWindow::MainWindow()
 	if (settings.FindBool("closeOnEscape", &fCloseOnEscape) != B_OK)
 		fCloseOnEscape = true; // default
 
+	if (settings.FindBool("highQualityScaling", &fHighQualityScaling) != B_OK)
+		fHighQualityScaling = true; // default
+
+	fImageView->fHighQualityScaling = fHighQualityScaling;
+
 	bool onTop;
 	if (settings.FindBool("alwaysOnTop", &onTop) == B_OK) {
 		SetFeel(onTop ? B_FLOATING_ALL_WINDOW_FEEL : B_NORMAL_WINDOW_FEEL);
@@ -438,7 +443,7 @@ MainWindow::MessageReceived(BMessage* message)
 		case M_SHOW_SETTINGS:
 		{
 			if (!fSettingsWindow) {
-				fSettingsWindow = new SettingsWindow(fCloseOnEscape, fUndoSteps);
+				fSettingsWindow = new SettingsWindow(fCloseOnEscape, fHighQualityScaling, fUndoSteps);
 				fSettingsWindow->CenterIn(Frame());
 				fSettingsWindow->Show();
 			} else {
@@ -452,8 +457,12 @@ MainWindow::MessageReceived(BMessage* message)
 		{
 			bool flag;
 			int32 num;
-			if (message->FindBool("value", &flag) == B_OK)
+			if (message->FindBool("closeOnEscape", &flag) == B_OK)
 				fCloseOnEscape = flag;
+			if (message->FindBool("highQualityScaling", &flag) == B_OK) {
+				fHighQualityScaling = flag;
+				fImageView->fHighQualityScaling = fHighQualityScaling;
+			}
 			if (message->FindInt32("undoSteps", &num) == B_OK)
 				fUndoSteps = num;
 
@@ -780,6 +789,7 @@ MainWindow::_SaveSettings()
 	if (fLastSaveDir.device >= 0)
 		status = settings.AddRef("lastSaveDir", &fLastSaveDir);
 	settings.AddBool("closeOnEscape", fCloseOnEscape);
+	settings.AddBool("highQualityScaling", fHighQualityScaling);
 	settings.AddBool("alwaysOnTop", _AlwaysOnTop());
 	settings.AddInt32("undoSteps", fUndoSteps);
 	settings.AddInt32("scaleMode", fImageView->getScaleMode());

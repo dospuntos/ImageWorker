@@ -75,6 +75,7 @@ public:
 
 	float fZoom = 1.0f;
 	float EffectiveZoom() const;
+	bool fHighQualityScaling;
 
 private:
     BBitmap* fBitmap;

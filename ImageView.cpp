@@ -167,7 +167,9 @@ ImageView::Draw(BRect)
     SetDrawingMode(B_OP_ALPHA);
     SetBlendingMode(B_PIXEL_ALPHA, B_ALPHA_OVERLAY);
 
-    DrawBitmap(fBitmap, bitmapBounds, destRect);
+	uint32 options = fHighQualityScaling ? B_FILTER_BITMAP_BILINEAR : 0;
+
+    DrawBitmap(fBitmap, bitmapBounds, destRect, options);
 }
 
 

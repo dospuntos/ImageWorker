@@ -1,0 +1,192 @@
+[
+  {
+    "arguments": [
+      "/bin/g++",
+      "-c",
+      "-iquote./",
+      "-iquote./",
+      "-iquoteobjects.x86_64-cc13-release/",
+      "-isystem/boot/system/develop/headers/private/interface",
+      "-isystem/boot/system/develop/headers/private/shared",
+      "-isystem/boot/system/develop/headers/private/tracker",
+      "-O3",
+      "-o",
+      "objects.x86_64-cc13-release/App.o",
+      "App.cpp"
+    ],
+    "directory": "/boot/home/Projects/ImageWorker",
+    "file": "/boot/home/Projects/ImageWorker/App.cpp",
+    "output": "/boot/home/Projects/ImageWorker/objects.x86_64-cc13-release/App.o"
+  },
+  {
+    "arguments": [
+      "/bin/g++",
+      "-c",
+      "-iquote./",
+      "-iquote./",
+      "-iquoteobjects.x86_64-cc13-release/",
+      "-isystem/boot/system/develop/headers/private/interface",
+      "-isystem/boot/system/develop/headers/private/shared",
+      "-isystem/boot/system/develop/headers/private/tracker",
+      "-O3",
+      "-o",
+      "objects.x86_64-cc13-release/MainWindow.o",
+      "MainWindow.cpp"
+    ],
+    "directory": "/boot/home/Projects/ImageWorker",
+    "file": "/boot/home/Projects/ImageWorker/MainWindow.cpp",
+    "output": "/boot/home/Projects/ImageWorker/objects.x86_64-cc13-release/MainWindow.o"
+  },
+  {
+    "arguments": [
+      "/bin/g++",
+      "-c",
+      "-iquote./",
+      "-iquote./",
+      "-iquoteobjects.x86_64-cc13-release/",
+      "-isystem/boot/system/develop/headers/private/interface",
+      "-isystem/boot/system/develop/headers/private/shared",
+      "-isystem/boot/system/develop/headers/private/tracker",
+      "-O3",
+      "-o",
+      "objects.x86_64-cc13-release/ImageView.o",
+      "ImageView.cpp"
+    ],
+    "directory": "/boot/home/Projects/ImageWorker",
+    "file": "/boot/home/Projects/ImageWorker/ImageView.cpp",
+    "output": "/boot/home/Projects/ImageWorker/objects.x86_64-cc13-release/ImageView.o"
+  },
+  {
+    "arguments": [
+      "/bin/g++",
+      "-c",
+      "-iquote./",
+      "-iquote./",
+      "-iquoteobjects.x86_64-cc13-release/",
+      "-isystem/boot/system/develop/headers/private/interface",
+      "-isystem/boot/system/develop/headers/private/shared",
+      "-isystem/boot/system/develop/headers/private/tracker",
+      "-O3",
+      "-o",
+      "objects.x86_64-cc13-release/StatusView.o",
+      "StatusView.cpp"
+    ],
+    "directory": "/boot/home/Projects/ImageWorker",
+    "file": "/boot/home/Projects/ImageWorker/StatusView.cpp",
+    "output": "/boot/home/Projects/ImageWorker/objects.x86_64-cc13-release/StatusView.o"
+  },
+  {
+    "arguments": [
+      "/bin/g++",
+      "-c",
+      "-iquote./",
+      "-iquote./",
+      "-iquoteobjects.x86_64-cc13-release/",
+      "-isystem/boot/system/develop/headers/private/interface",
+      "-isystem/boot/system/develop/headers/private/shared",
+      "-isystem/boot/system/develop/headers/private/tracker",
+      "-O3",
+      "-o",
+      "objects.x86_64-cc13-release/Constants.o",
+      "Constants.cpp"
+    ],
+    "directory": "/boot/home/Projects/ImageWorker",
+    "file": "/boot/home/Projects/ImageWorker/Constants.cpp",
+    "output": "/boot/home/Projects/ImageWorker/objects.x86_64-cc13-release/Constants.o"
+  },
+  {
+    "arguments": [
+      "/bin/g++",
+      "-c",
+      "-iquote./",
+      "-iquote./",
+      "-iquoteobjects.x86_64-cc13-release/",
+      "-isystem/boot/system/develop/headers/private/interface",
+      "-isystem/boot/system/develop/headers/private/shared",
+      "-isystem/boot/system/develop/headers/private/tracker",
+      "-O3",
+      "-o",
+      "objects.x86_64-cc13-release/Toolbar.o",
+      "Toolbar.cpp"
+    ],
+    "directory": "/boot/home/Projects/ImageWorker",
+    "file": "/boot/home/Projects/ImageWorker/Toolbar.cpp",
+    "output": "/boot/home/Projects/ImageWorker/objects.x86_64-cc13-release/Toolbar.o"
+  },
+  {
+    "arguments": [
+      "/bin/g++",
+      "-c",
+      "-iquote./",
+      "-iquote./",
+      "-iquoteobjects.x86_64-cc13-release/",
+      "-isystem/boot/system/develop/headers/private/interface",
+      "-isystem/boot/system/develop/headers/private/shared",
+      "-isystem/boot/system/develop/headers/private/tracker",
+      "-O3",
+      "-o",
+      "objects.x86_64-cc13-release/IconMenuItem.o",
+      "IconMenuItem.cpp"
+    ],
+    "directory": "/boot/home/Projects/ImageWorker",
+    "file": "/boot/home/Projects/ImageWorker/IconMenuItem.cpp",
+    "output": "/boot/home/Projects/ImageWorker/objects.x86_64-cc13-release/IconMenuItem.o"
+  },
+  {
+    "arguments": [
+      "/bin/g++",
+      "-c",
+      "-iquote./",
+      "-iquote./",
+      "-iquoteobjects.x86_64-cc13-release/",
+      "-isystem/boot/system/develop/headers/private/interface",
+      "-isystem/boot/system/develop/headers/private/shared",
+      "-isystem/boot/system/develop/headers/private/tracker",
+      "-O3",
+      "-o",
+      "objects.x86_64-cc13-release/SettingsWindow.o",
+      "SettingsWindow.cpp"
+    ],
+    "directory": "/boot/home/Projects/ImageWorker",
+    "file": "/boot/home/Projects/ImageWorker/SettingsWindow.cpp",
+    "output": "/boot/home/Projects/ImageWorker/objects.x86_64-cc13-release/SettingsWindow.o"
+  },
+  {
+    "arguments": [
+      "/bin/g++",
+      "-c",
+      "-iquote./",
+      "-iquote./",
+      "-iquoteobjects.x86_64-cc13-release/",
+      "-isystem/boot/system/develop/headers/private/interface",
+      "-isystem/boot/system/develop/headers/private/shared",
+      "-isystem/boot/system/develop/headers/private/tracker",
+      "-O3",
+      "-o",
+      "objects.x86_64-cc13-release/InfoWindow.o",
+      "InfoWindow.cpp"
+    ],
+    "directory": "/boot/home/Projects/ImageWorker",
+    "file": "/boot/home/Projects/ImageWorker/InfoWindow.cpp",
+    "output": "/boot/home/Projects/ImageWorker/objects.x86_64-cc13-release/InfoWindow.o"
+  },
+  {
+    "arguments": [
+      "/bin/g++",
+      "-c",
+      "-iquote./",
+      "-iquote./",
+      "-iquoteobjects.x86_64-cc13-release/",
+      "-isystem/boot/system/develop/headers/private/interface",
+      "-isystem/boot/system/develop/headers/private/shared",
+      "-isystem/boot/system/develop/headers/private/tracker",
+      "-O3",
+      "-o",
+      "objects.x86_64-cc13-release/SupportingAppsMenu.o",
+      "SupportingAppsMenu.cpp"
+    ],
+    "directory": "/boot/home/Projects/ImageWorker",
+    "file": "/boot/home/Projects/ImageWorker/SupportingAppsMenu.cpp",
+    "output": "/boot/home/Projects/ImageWorker/objects.x86_64-cc13-release/SupportingAppsMenu.o"
+  }
+]

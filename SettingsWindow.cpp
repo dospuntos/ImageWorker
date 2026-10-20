@@ -14,7 +14,7 @@
 #include <Message.h>
 
 
-SettingsWindow::SettingsWindow(bool closeOnEscape, int undoSteps)
+SettingsWindow::SettingsWindow(bool closeOnEscape, bool highQualityScaling, int undoSteps)
 	:
 	BWindow(BRect(200, 200, 500, 400), "Settings", B_TITLED_WINDOW,
 		B_NOT_RESIZABLE | B_NOT_MINIMIZABLE | B_NOT_ZOOMABLE | B_AUTO_UPDATE_SIZE_LIMITS
@@ -23,6 +23,9 @@ SettingsWindow::SettingsWindow(bool closeOnEscape, int undoSteps)
 	fCloseOnEscape
 		= new BCheckBox("closeOnEscape", "Close on Escape", new BMessage(M_APPLY_SETTINGS));
 	fCloseOnEscape->SetValue(closeOnEscape);
+
+	fHighQualityScaling = new BCheckBox("highQualityScaling", "High quality scaling", new BMessage(M_APPLY_SETTINGS));
+	fHighQualityScaling->SetValue(highQualityScaling);
 
 	fUndoSteps = new BSpinner("UndoSteps", "Undo steps:", new BMessage(M_APPLY_SETTINGS));
 	fUndoSteps->SetMinValue(0);
@@ -33,6 +36,7 @@ SettingsWindow::SettingsWindow(bool closeOnEscape, int undoSteps)
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 10)
 		.SetInsets(10, 10, 10, 10)
 		.Add(fCloseOnEscape)
+		.Add(fHighQualityScaling)
 		.Add(fUndoSteps)
 		.AddGlue()
 		.AddGroup(B_HORIZONTAL)
@@ -49,7 +53,8 @@ SettingsWindow::MessageReceived(BMessage* message)
 		case M_APPLY_SETTINGS:
 		{
 			BMessage msg(M_APPLY_SETTINGS);
-			msg.AddBool("value", fCloseOnEscape->Value() == B_CONTROL_ON);
+			msg.AddBool("closeOnEscape", fCloseOnEscape->Value() == B_CONTROL_ON);
+			msg.AddBool("highQualityScaling", fHighQualityScaling->Value() == B_CONTROL_ON);
 			msg.AddInt32("undoSteps", fUndoSteps->Value());
 
 			be_app->WindowAt(0)->PostMessage(&msg);

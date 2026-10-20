@@ -83,6 +83,7 @@ private:
 			// settings
 			BWindow*		fSettingsWindow;
 			bool			fCloseOnEscape;
+			bool			fHighQualityScaling;
 			int32			fUndoSteps;
 			bool			_AlwaysOnTop() {return Feel() == B_FLOATING_ALL_WINDOW_FEEL;};
 
