@@ -54,6 +54,7 @@ private:
 			translator_id	fSelectedTranslator = -1;
 			uint32			fSelectedFormat;
 			int32			fSelectedFormatIndex;
+			void			_ShowTrackerInfo(const entry_ref& ref);
 			void			_SaveRequested(BMessage* message);
 			void			_ShowSavePanel();
 			status_t		_SaveBitmap(BBitmap* bitmap, BFile& file, uint32 format);
@@ -88,6 +89,8 @@ private:
 			BMenuItem*		fMReopen;
 			BMenu*	 		fOpenWithMenu;
 			BMenuItem*		fMDeleteImage;
+			BMenuItem*		fMShowTrackerInfo;
+			BMenuItem*		fMDesktopBackground;
 			BMenuItem*		fMUndo;
 			BMenuItem*		fMRedo;
 			BMenuItem*		fMRotate90CW;

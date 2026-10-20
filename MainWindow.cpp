@@ -184,6 +184,22 @@ MainWindow::MessageReceived(BMessage* message)
 			break;
 		}
 
+		case M_SHOW_TRACKER_INFO:
+		{
+			_ShowTrackerInfo(fCurrentRef);
+		} break;
+
+		case M_DESKTOP_BACKGROUND:
+		{
+			BMessage backgroundsMessage(B_REFS_RECEIVED);
+			backgroundsMessage.AddRef("refs", &fCurrentRef);
+			// This is used in the Backgrounds code for scaled placement
+			backgroundsMessage.AddInt32("placement", 'scpl');
+			be_roster->Launch("application/x-vnd.haiku-backgrounds",
+				&backgroundsMessage);
+			break;
+		}
+
 		case M_SAVE_FILE:
 			_ShowSavePanel();
 			break;
@@ -512,6 +528,12 @@ MainWindow::_BuildMenu()
 
 	menu->AddSeparatorItem();
 
+	fMShowTrackerInfo = new BMenuItem(B_TRANSLATE("File information"), new BMessage(M_SHOW_TRACKER_INFO));
+	menu->AddItem(fMShowTrackerInfo);
+
+	fMDesktopBackground = new BMenuItem(B_TRANSLATE("Set as desktop background"), new BMessage(M_DESKTOP_BACKGROUND));
+	menu->AddItem(fMDesktopBackground);
+
 	fMDeleteImage = new BMenuItem(B_TRANSLATE("Delete file"), new BMessage(M_DELETE_IMAGE));
 	menu->AddItem(fMDeleteImage);
 
@@ -780,6 +802,8 @@ MainWindow::MenusBeginning()
 	fMShowChannel->SetEnabled(fHasImage);
 	fMReopen->SetEnabled(fHasImage);
 	fMDeleteImage->SetEnabled(fHasImage);
+	fMShowTrackerInfo->SetEnabled(fHasImage);
+	fMDesktopBackground->SetEnabled(fHasImage);
 	fMAutoAdjust->SetEnabled(fHasImage);
 	fMEffects->SetEnabled(fHasImage);
 	fMSharpen->SetEnabled(fHasImage);
@@ -838,6 +862,16 @@ MainWindow::_LoadImage(const entry_ref& ref)
 
 	_UpdateOpenWithMenu(fOpenWithMenu);
 	_UpdateStatus();
+}
+
+
+void
+MainWindow::_ShowTrackerInfo(const entry_ref& ref)
+{
+	BMessage message('Tinf');
+	BMessenger tracker("application/x-vnd.Be-TRAK");
+	message.AddRef("refs", &ref);
+	tracker.SendMessage(&message);
 }
 
 

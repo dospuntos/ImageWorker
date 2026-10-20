@@ -18,6 +18,8 @@ enum {
 	M_REOPEN_FILE = 'frop',
 	M_OPEN_WITH = 'fopw',
 	M_SAVE_FILE = 'fsav',
+	M_SHOW_TRACKER_INFO = 'tinf',
+	M_DESKTOP_BACKGROUND = 'bkgr',
 	M_FORMAT_SELECTED = 'fmts',
 	M_SHOW_TRANSLATOR_SETTINGS = 'fset',
 	M_FIT_TO_WINDOW = 'ftwi',
