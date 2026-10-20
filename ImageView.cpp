@@ -61,25 +61,34 @@ ImageView::SetBitmap(BBitmap* bitmap)
     Invalidate();
 }
 
+
 void
 ImageView::SetScaleMode(ScaleMode mode)
 {
-	fScaleMode = mode;
-	if (mode == SCALE_FIT_WINDOW)
+    fScaleMode = mode;
+
+    if (mode == SCALE_ORIGINAL) {
+        fZoom = 1.0f;
         fOffset = BPoint(0, 0);
-	_ClampOffset();
+    } else if (mode == SCALE_FIT_WINDOW) {
+        fOffset = BPoint(0, 0);
+    }
 
-	if (Window())
-		Window()->PostMessage('stat');
+    _ClampOffset();
 
-	Invalidate();
+    if (Window())
+        Window()->PostMessage('stat');
+
+    Invalidate();
 }
+
 
 ScaleMode
 ImageView::getScaleMode() const
 {
 	return fScaleMode;
 }
+
 
 void
 ImageView::Draw(BRect)
@@ -100,7 +109,7 @@ ImageView::Draw(BRect)
     float viewWidth = viewBounds.Width() + 1;
     float viewHeight = viewBounds.Height() + 1;
 
-    // --- unified zoom ---
+    // unified zoom
     float scaleX = viewWidth / bitmapWidth;
 	float scaleY = viewHeight / bitmapHeight;
 
@@ -207,14 +216,11 @@ void ImageView::KeyDown(const char* bytes, int32 numBytes)
             case 'f':
             case 'F':
                 {
-				switch (fScaleMode) {
-					case SCALE_FIT_WINDOW:   SetScaleMode(SCALE_FIT_WIDTH); break;
-					case SCALE_FIT_WIDTH:    SetScaleMode(SCALE_FIT_HEIGHT); break;
-					case SCALE_FIT_HEIGHT:   SetScaleMode(SCALE_ORIGINAL); break;
-					case SCALE_ORIGINAL:     SetScaleMode(SCALE_FIT_LARGE_ONLY); break;
-					default:                SetScaleMode(SCALE_FIT_WINDOW); break;
+				if (fScaleMode == SCALE_FIT_WINDOW)
+					SetScaleMode(SCALE_ORIGINAL);
+				else
+					SetScaleMode(SCALE_FIT_WINDOW);
 				}
-			}
                 return;
 			case B_RIGHT_ARROW:
 			case B_SPACE:
@@ -296,7 +302,6 @@ void ImageView::Clear()
 
 		fOffset = BPoint(0, 0);
 		fZoom = 1.0f;
-		fScaleMode = SCALE_FIT_WINDOW;
 
 		ClearHistory();
 		Invalidate();
@@ -1047,21 +1052,20 @@ ImageView::SetZoom(float zoom)
 		Window()->PostMessage('stat');
 }
 
+
 void
 ImageView::ZoomIn()
 {
-    SetZoom(fZoom * 1.05f);
-	if (Window())
-		Window()->PostMessage('stat');
+    SetZoom(EffectiveZoom() * 1.05f);
 }
+
 
 void
 ImageView::ZoomOut()
 {
-    SetZoom(fZoom / 1.05f);
-	if (Window())
-		Window()->PostMessage('stat');
+    SetZoom(EffectiveZoom() / 1.05f);
 }
+
 
 float
 ImageView::EffectiveZoom() const
@@ -1078,13 +1082,28 @@ ImageView::EffectiveZoom() const
     float viewWidth = viewBounds.Width() + 1;
     float viewHeight = viewBounds.Height() + 1;
 
-    if (fScaleMode == SCALE_FIT_WINDOW) {
-        float scaleX = viewWidth / bitmapWidth;
-        float scaleY = viewHeight / bitmapHeight;
-        return std::min(scaleX, scaleY);
-    }
+    float scaleX = viewWidth / bitmapWidth;
+    float scaleY = viewHeight / bitmapHeight;
 
-    return fZoom;
+    switch (fScaleMode) {
+        case SCALE_FIT_WINDOW:
+            return std::min(scaleX, scaleY);
+
+        case SCALE_FIT_LARGE_ONLY:
+            if (bitmapWidth > viewWidth || bitmapHeight > viewHeight)
+                return std::min(scaleX, scaleY);
+            return 1.0f;
+
+        case SCALE_FIT_WIDTH:
+            return scaleX;
+
+        case SCALE_FIT_HEIGHT:
+            return scaleY;
+
+        case SCALE_ORIGINAL:
+        default:
+            return fZoom;
+    }
 }
 
 
@@ -1100,7 +1119,7 @@ ImageView::MouseWheelChanged(BPoint where, float, float y)
     float factor = (y < 0) ? 1.25f : 0.8f;
 
     // Switch from FIT → zoom mode
-    if (fScaleMode == SCALE_FIT_WINDOW) {
+    if (fScaleMode != SCALE_ORIGINAL) {
         fZoom = oldZoom;
         fScaleMode = SCALE_ORIGINAL;
     }
@@ -1144,6 +1163,8 @@ ImageView::MouseWheelChanged(BPoint where, float, float y)
 
 	_ClampOffset();
     Invalidate();
+	if (Window())
+		Window()->PostMessage('stat');
 }
 
 

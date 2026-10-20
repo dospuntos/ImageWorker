@@ -25,6 +25,7 @@ class MainWindow : public BWindow {
 public:
 							MainWindow();
 	virtual					~MainWindow();
+	virtual void 			FrameResized(float newWidth, float newHeight);
 	bool					QuitRequested(void);
 	virtual void			MessageReceived(BMessage* msg);
 	void 					MenusBeginning();

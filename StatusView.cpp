@@ -11,6 +11,7 @@
 #include <InterfaceDefs.h>
 #include <File.h>
 #include <String.h>
+#include <cmath>
 
 StatusView::StatusView()
     : BStringView("status", "No image")
@@ -58,8 +59,33 @@ void StatusView::Update(const entry_ref* ref,
 	zoom.SetToFormat("%.0f%%", imageView->EffectiveZoom() * 100.0f);
 	text << zoom;
 
-    if (imageView->getScaleMode() == SCALE_FIT_WINDOW)
-        text << " Fit";
+    const char* scaleMode = "";
+
+	switch (imageView->getScaleMode()) {
+		case SCALE_FIT_WINDOW:
+			scaleMode = "Fit to window";
+			break;
+
+		case SCALE_FIT_LARGE_ONLY:
+			scaleMode = "Fit large only";
+			break;
+
+		case SCALE_ORIGINAL:
+			scaleMode = std::abs(imageView->EffectiveZoom() - 1.0f) < 0.01f
+				? "Actual size"
+				: "Manual zoom";
+			break;
+
+		case SCALE_FIT_WIDTH:
+			scaleMode = "Fit width";
+			break;
+
+		case SCALE_FIT_HEIGHT:
+			scaleMode = "Fit height";
+			break;
+	}
+
+	text << "  (" << scaleMode << ")";
 
     char diskBuf[32], memBuf[32];
     FormatSize(diskBuf, GetFileSize(ref));

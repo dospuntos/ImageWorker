@@ -193,7 +193,6 @@ MainWindow::MessageReceived(BMessage* message)
 		{
 			BMessage backgroundsMessage(B_REFS_RECEIVED);
 			backgroundsMessage.AddRef("refs", &fCurrentRef);
-			// This is used in the Backgrounds code for scaled placement
 			backgroundsMessage.AddInt32("placement", 'scpl');
 			be_roster->Launch("application/x-vnd.haiku-backgrounds",
 				&backgroundsMessage);
@@ -476,6 +475,15 @@ MainWindow::MessageReceived(BMessage* message)
 			BWindow::MessageReceived(message);
 			break;
 	}
+}
+
+
+void
+MainWindow::FrameResized(float newWidth, float newHeight)
+{
+    BWindow::FrameResized(newWidth, newHeight);
+
+    PostMessage('stat');
 }
 
 
@@ -807,6 +815,7 @@ MainWindow::MenusBeginning()
 	fMAutoAdjust->SetEnabled(fHasImage);
 	fMEffects->SetEnabled(fHasImage);
 	fMSharpen->SetEnabled(fHasImage);
+	fOpenWithMenu->SetEnabled(fHasImage);
 
 	fMUndo->SetEnabled(fImageView->CanUndo());
 	fMRedo->SetEnabled(fImageView->CanRedo());
