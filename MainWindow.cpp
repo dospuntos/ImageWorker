@@ -897,16 +897,23 @@ MainWindow::_ShowTrackerInfo(const entry_ref& ref)
 static bool
 _IsImageFile(const entry_ref& ref)
 {
-	BNode node(&ref);
-	if (node.InitCheck() != B_OK)
-		return false;
+    BEntry entry(&ref);
 
-	BNodeInfo nodeInfo(&node);
-	char mimeType[B_MIME_TYPE_LENGTH];
-	if (nodeInfo.GetType(mimeType) != B_OK)
-		return false;
+    if (entry.InitCheck() != B_OK || !entry.IsFile())
+        return false;
 
-	return strncmp(mimeType, "image/", 6) == 0;
+    BFile file(&ref, B_READ_ONLY);
+
+    if (file.InitCheck() != B_OK)
+        return false;
+
+    translator_info info;
+    BTranslatorRoster* roster = BTranslatorRoster::Default();
+
+    return roster->Identify(
+        &file, nullptr, &info,
+        0, nullptr, B_TRANSLATOR_BITMAP
+    ) == B_OK && info.group == B_TRANSLATOR_BITMAP;
 }
 
 
